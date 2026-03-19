@@ -9,6 +9,15 @@ description = "A Multi-Agent AI chatroom."
 authors = [{ name = "Ruben Dedoncker", email = "ruben@dedoncker.dev" }]
 readme = "README.md"
 requires-python = ">=3.12"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Framework :: FastAPI",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
 dependencies = [
     "fasta2a>=0.6.0",
     "fastapi>=0.135.1",
@@ -21,6 +30,10 @@ dependencies = [
     "uvicorn>=0.41.0",
     "websockets>=16.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/CisterMoke/palaver"
+Repository = "https://github.com/CisterMoke/palaver"
 
 [project.scripts]
 palaver = "palaver.app.main:main"
