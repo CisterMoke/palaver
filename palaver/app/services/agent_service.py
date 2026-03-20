@@ -12,10 +12,12 @@ from palaver.app.dataclasses.agent import AgentInfo, AgentResponse, DelegationRe
 from palaver.app.dataclasses.events import AgentResponseChunkEvent
 from palaver.app.dataclasses.llm import ChatroomMessage
 from palaver.app.dataclasses.message import Message
+from palaver.app.enums import RoleEnum
 from palaver.app.ws_event_stream import RunEventWSStream, OutputEventWSStream, TextWSStream
 from palaver.app.models.agent import Agent, ProviderModels
 from palaver.app.prompts import BASE_PROMPT
 from palaver.app.tools import Metadata
+
 
 class AgentManager:
     """Manages AI agents and their interactions with chat flow logic"""
@@ -66,7 +68,7 @@ class AgentManager:
             agents.append(agent)
         return agents
 
-    def _construct_user_message(self, content: str, sender: str, role: Literal["agent", "user"]) -> ModelRequest:
+    def _construct_user_message(self, content: str, sender: str, role: Literal[RoleEnum.AGENT, RoleEnum.USER]) -> ModelRequest:
         message = ChatroomMessage(sender=sender, role=role, content=content)
         return ModelRequest.user_text_prompt(message.model_dump_json())
     
@@ -81,12 +83,12 @@ class AgentManager:
     def _construct_messages(self, agent_id: str, system_prompt: str, messages: list[Message]) -> list[ModelMessage]:
         model_messages = []
         for msg in messages:
-            if msg.role == "user":
-                model_messages.append(self._construct_user_message(msg.content, "USER", "user"))
+            if msg.role == RoleEnum.USER:
+                model_messages.append(self._construct_user_message(msg.content, "USER", RoleEnum.USER))
             else:
                 sender = msg.sender
                 if sender != agent_id:
-                    model_messages.append(self._construct_user_message(msg.content, sender, "agent"))
+                    model_messages.append(self._construct_user_message(msg.content, sender, RoleEnum.AGENT))
                 else:
                     model_messages.append(ModelResponse(parts=[TextPart(content=msg.content)]))
         self._inject_system_prompt(system_prompt, model_messages)
@@ -221,7 +223,7 @@ class AgentManager:
                 raise ValueError(f"Agent {agent_id} is not a target for this message")
 
         if isinstance(message, str):
-            message = Message(sender="user", role="user", content=message)
+            message = Message(sender="user", role=RoleEnum.USER, content=message)
             
         response_text, success = await self._generate_llm_response(
             self.get_agent(target_agent_id),

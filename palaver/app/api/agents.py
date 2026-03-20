@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException
 from palaver.app.config import AgentConfig
 from palaver.app.dataclasses.agent import AgentInfo, AgentResponse, CreateAgentRequest, DeleteResponse
 from palaver.app.dataclasses.message import Message, SendMessageRequest
+from palaver.app.enums import Role
 from palaver.app.models.agent import Agent
 from palaver.app.services.agent_service import get_agent_service
 
@@ -71,7 +72,7 @@ async def test_agent_connection(request: CreateAgentRequest):
     
     test_message = Message(
         sender="system", 
-        role="user", 
+        role=Role.USER, 
         content="Please reply with 'Connection successful' to confirm you are online."
     )
     

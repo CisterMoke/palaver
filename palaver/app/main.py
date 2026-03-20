@@ -13,6 +13,7 @@ from palaver.app.connection_manager import manager
 from palaver.app.constants import UI_DIR
 from palaver.app.dataclasses.events import ChatMessageEvent, UserLeftEvent
 from palaver.app.dataclasses.message import Message
+from palaver.app.enums import RoleEnum
 from palaver.app.services.chatroom_service import generate_agent_response_streaming
 
 
@@ -57,7 +58,7 @@ async def websocket_endpoint(websocket: WebSocket, chatroom_id: str):
                 if target_agent_ids:
                     user_message = Message(
                         sender=chat_event.sender,
-                        role="user",
+                        role=RoleEnum.USER,
                         content=chat_event.content,
                         target_agent_ids=target_agent_ids
                     )

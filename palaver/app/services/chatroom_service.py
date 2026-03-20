@@ -3,17 +3,16 @@ import re
 import uuid
 
 from datetime import datetime
+from loguru import logger
 from pydantic_core import to_jsonable_python
 
-from palaver.app.database.db import (
-    _get_chatroom_path, _read_json_file, _write_json_file,
-    CHATROOMS_DIR,
-)
+import palaver.app.database.db as db
 
 from palaver.app.connection_manager import manager
 from palaver.app.dataclasses.chatroom import Chatroom
 from palaver.app.dataclasses.events import AgentResponseStartEvent, AgentResponseChunkEvent, AgentResponseCompleteEvent, AgentResponseErrorEvent
 from palaver.app.dataclasses.message import ChatMessage, Message
+from palaver.app.enums import RoleEnum
 from palaver.app.services.agent_service import get_agent_service
 from palaver.app.tools import send_agent_tool, Metadata
 
@@ -21,93 +20,58 @@ from palaver.app.tools import send_agent_tool, Metadata
 agent_service = get_agent_service()
 
 
-def create_chatroom(name: str, description: str = "") -> Chatroom:
+def create_chatroom(name: str) -> Chatroom:
     """Create a new chatroom"""
-    chatroom_id = str(uuid.uuid4())
-    chatroom_data = {
-        "id": chatroom_id,
-        "name": name,
-        "description": description,
-        "agents": [],
-        "messages": [],
-        "created_at": datetime.now().isoformat()
-    }
-    
-    file_path = _get_chatroom_path(chatroom_id)
-    _write_json_file(file_path, chatroom_data)
-    
-    return Chatroom(id=chatroom_id, name=name, description=description)
+    chatroom = Chatroom(name=name)
+    db.save_chatroom(chatroom)
+    return chatroom
 
 
 def get_chatroom(chatroom_id: str) -> Chatroom | None:
     """Get a chatroom by ID"""
-    file_path = _get_chatroom_path(chatroom_id)
-    chatroom_data = _read_json_file(file_path)
-    
-    if chatroom_data:
-        return Chatroom(
-            id=chatroom_data["id"], 
-            name=chatroom_data["name"], 
-            description=chatroom_data.get("description", "")
-        )
-    return None
+    try:
+        return db.get_chatroom(chatroom_id)
+    except ValueError:
+        logger.warning(f"Could not find chatroom with id '{chatroom_id}'")
 
 
 def get_all_chatrooms() -> list[Chatroom]:
     """Get all chatrooms"""
-    chatrooms = []
-    if os.path.exists(CHATROOMS_DIR):
-        for filename in os.listdir(CHATROOMS_DIR):
-            if filename.endswith(".json"):
-                file_path = os.path.join(CHATROOMS_DIR, filename)
-                chatroom_data = _read_json_file(file_path)
-                if chatroom_data:
-                    chatrooms.append(Chatroom(
-                        id=chatroom_data["id"],
-                        name=chatroom_data["name"],
-                        description=chatroom_data.get("description", "")
-                    ))
-    return chatrooms
+    return db.load_chatrooms()
 
 
 def add_agent_to_chatroom(chatroom_id: str, agent_id: str) -> bool:
     """Add an agent to a chatroom"""
-    chatroom_file = _get_chatroom_path(chatroom_id)
-    chatroom_data = _read_json_file(chatroom_file)
-    
-    if not chatroom_data:
+    chatroom = get_chatroom(chatroom_id)
+    if chatroom is None:
         return False
     
-    if agent_id not in chatroom_data.get("agents", []):
-        chatroom_data["agents"].append(agent_id)
-        _write_json_file(chatroom_file, chatroom_data)
-    
+    chatroom.agents.append(agent_id)
+    db.save_chatroom(chatroom)
     return True
 
 
 def remove_agent_from_chatroom(chatroom_id: str, agent_id: str) -> bool:
     """Remove an agent from a chatroom"""
-    chatroom_file = _get_chatroom_path(chatroom_id)
-    chatroom_data = _read_json_file(chatroom_file)
-
-    if not chatroom_data:
+    chatroom = get_chatroom(chatroom_id)
+    if chatroom is None:
         return False
 
-    agents = chatroom_data.get("agents", [])
+    agents = chatroom.agents
     if agent_id in agents:
-        chatroom_data["agents"] = [a for a in agents if a != agent_id]
-        _write_json_file(chatroom_file, chatroom_data)
-
+        chatroom.agents = [a for a in agents if a != agent_id]
+    
+    db.save_chatroom(chatroom)
     return True
 
 
 def get_chatroom_agents(chatroom_id: str) -> list[str]:
     """Get all agents in a chatroom"""
-    chatroom_file = _get_chatroom_path(chatroom_id)
-    chatroom_data = _read_json_file(chatroom_file)
+    chatroom = get_chatroom(chatroom_id)
+    if chatroom is None:
+        return []
     
-    if chatroom_data and "agents" in chatroom_data:
-        return chatroom_data["agents"]
+    return chatroom.agents
 
    
 def filter_target_ids(chatroom_id: str, target_ids: list[str]) -> list[str] | None:
@@ -121,12 +85,7 @@ def filter_target_ids(chatroom_id: str, target_ids: list[str]) -> list[str] | No
 
 
 def store_chat_message(chatroom_id: str, chat_message: ChatMessage):
-    chatroom_file = _get_chatroom_path(chatroom_id)
-    chatroom_data = _read_json_file(chatroom_file)
-    
-    if chatroom_data:
-        chatroom_data["messages"].append(to_jsonable_python(chat_message))
-        _write_json_file(chatroom_file, chatroom_data)
+    db.save_message(chatroom_id, chat_message)
 
 
 def create_message(chatroom_id: str, message: Message) -> ChatMessage:
@@ -149,17 +108,7 @@ def create_message(chatroom_id: str, message: Message) -> ChatMessage:
 
 def get_chatroom_messages(chatroom_id: str, limit: int = 100) -> list[ChatMessage]:
     """Get messages from a chatroom"""
-    chatroom_file = _get_chatroom_path(chatroom_id)
-    chatroom_data = _read_json_file(chatroom_file)
-    
-    messages = []
-    if chatroom_data and "messages" in chatroom_data:
-        # Get last 'limit' messages
-        all_messages = chatroom_data["messages"][-limit:]
-        for msg_data in all_messages:
-            messages.append(ChatMessage.model_validate(msg_data))
-    
-    return messages
+    return db.load_messages(chatroom_id)[-limit:]
 
 
 def extract_target_ids(chatroom_id, agent_id: str, text: str) -> list[str] | None:
@@ -171,77 +120,6 @@ def extract_target_ids(chatroom_id, agent_id: str, text: str) -> list[str] | Non
             target_ids.append(match.group(1))
     return filter_target_ids(chatroom_id, target_ids)
 
-
-async def generate_agent_response_streaming_old(chatroom_id: str, agent_id: str, user_message: Message, chat_history: list[ChatMessage]):
-    """
-    Generate a response from an agent, stream tokens via WebSocket, and persist the final message.
-    """
-    message_id = str(uuid.uuid4())
-    other_agent_ids = [aid for aid in get_chatroom_agents(chatroom_id) if aid != agent_id]
-    system_prompt = agent_service.create_system_prompt(agent_id, other_agent_ids)
-    
-    # Notify start
-    await manager.broadcast(
-        AgentResponseStartEvent(
-            agent_id=agent_id,
-            message_id=message_id,
-        ).model_dump_json(),
-        chatroom_id
-    )
-    
-    full_response = ""
-    try:
-        async for delta in agent_service.generate_agent_response_streaming(
-            agent_id=agent_id, 
-            message=user_message, 
-            chat_history=chat_history,
-            system_prompt=system_prompt,
-            delta=True
-        ):
-            full_response += delta
-            await manager.broadcast(
-                AgentResponseChunkEvent(
-                    agent_id=agent_id,
-                    message_id=message_id,
-                    delta=delta,
-                ).model_dump_json(),
-                chatroom_id
-            )
-            
-        # Complete! Persist it.
-        timestamp = datetime.now().isoformat()
-        target_ids = extract_target_ids(chatroom_id, agent_id, full_response)
-        final_message = ChatMessage(
-            id=message_id,
-            chatroom_id=chatroom_id,
-            sender=agent_id,
-            role="assistant",
-            content=full_response,
-            timestamp=timestamp,
-            target_agent_ids=target_ids,
-        )
-        store_chat_message(chatroom_id, final_message)
-        await manager.broadcast(
-            AgentResponseCompleteEvent(
-                agent_id=agent_id,
-                message_id=message_id,
-                content=full_response
-            ).model_dump_json(),
-            chatroom_id
-        )
-        if target_ids is not None:
-            chat_history.append(final_message)
-            for agent_id in target_ids:
-                await generate_agent_response_streaming(chatroom_id, agent_id, final_message, chat_history)
-        
-    except Exception as e:
-        await manager.broadcast(
-            AgentResponseErrorEvent(
-                agent_id=agent_id,
-                error=str(e),
-            ).model_dump_json(),
-            chatroom_id
-        )
 
 async def generate_agent_response_streaming(chatroom_id: str, agent_id: str, user_message: Message, chat_history: list[ChatMessage]) -> str:
     """
@@ -278,7 +156,7 @@ async def generate_agent_response_streaming(chatroom_id: str, agent_id: str, use
                 id=event.message_id,
                 chatroom_id=chatroom_id,
                 sender=event.agent_id,
-                role="assistant",
+                role=RoleEnum.ASSISTANT,
                 content=curr_response,
                 timestamp=timestamp,
                 target_agent_ids=None,

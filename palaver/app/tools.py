@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 from pydantic_ai.tools import RunContext
 
 from palaver.app.dataclasses.message import Message
+from palaver.app.enums import RoleEnum
 
 
 class Metadata(BaseModel):
@@ -35,7 +36,7 @@ def send_agent_tool(messaging_func, recipient_verifier):
         
         message = Message(
             sender=ctx.deps.agent_id,
-            role="agent",
+            role=RoleEnum.AGENT,
             content=content,
             target_agent_ids=[recipient]
         )
