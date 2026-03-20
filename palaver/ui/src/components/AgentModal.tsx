@@ -1,21 +1,21 @@
 import { useState, useEffect } from "preact/hooks";
 import type { TargetedEvent } from "preact";
 import { createAgent, updateAgent, fetchProviders, fetchProviderModels, testAgent, deleteProvider } from "../api";
-import type { ProviderConfig, Agent } from "../api";
+import type { ProviderConfig, AgentInfo } from "../api";
 import ProviderModal from "./ProviderModal";
 
 interface AgentModalProps {
   onClose: () => void;
   onSuccess: () => void;
-  existingAgent?: Agent | null;
+  existingAgent?: AgentInfo | null;
 }
 
 export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentModalProps) {
   const [name, setName] = useState(existingAgent?.name || "");
   const [description, setDescription] = useState(existingAgent?.description || "");
-  const [systemPrompt, setSystemPrompt] = useState(existingAgent?.config?.prompt || "");
-  const [provider, setProvider] = useState(existingAgent?.config?.provider || "");
-  const [model, setModel] = useState(existingAgent?.config?.model || "");
+  const [systemPrompt, setSystemPrompt] = useState(existingAgent?.prompt || "");
+  const [provider, setProvider] = useState(existingAgent?.provider || "");
+  const [model, setModel] = useState(existingAgent?.model || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -82,6 +82,7 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
     try {
       const result = await testAgent({
         name,
+        description,
         prompt: systemPrompt,
         provider,
         model
@@ -109,6 +110,7 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
       if (existingAgent) {
         await updateAgent(existingAgent.id, {
           name: existingAgent.name, // Keep original name/id
+          description,
           prompt: systemPrompt,
           provider,
           model
@@ -116,6 +118,7 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
       } else {
         await createAgent({
           name,
+          description,
           prompt: systemPrompt,
           provider,
           model

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { fetchAgents, fetchChatroomParticipants, addChatroomParticipant, removeChatroomParticipant } from "../api";
-import type { Agent } from "../api";
+import type { AgentInfo } from "../api";
 
 interface ParticipantsModalProps {
   chatroomId: string;
@@ -9,7 +9,7 @@ interface ParticipantsModalProps {
 }
 
 export default function ParticipantsModal({ chatroomId, onClose, onChanged }: ParticipantsModalProps) {
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [participantIds, setParticipantIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null); // agent id currently being toggled
@@ -34,7 +34,7 @@ export default function ParticipantsModal({ chatroomId, onClose, onChanged }: Pa
     }
   };
 
-  const toggle = async (agent: Agent) => {
+  const toggle = async (agent: AgentInfo) => {
     if (busy) return;
     setBusy(agent.id);
     try {

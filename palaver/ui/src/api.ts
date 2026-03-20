@@ -2,16 +2,13 @@ export interface AgentConfig {
     name: string;
     provider: string;
     model: string;
+    description: string;
     prompt: string;
     temperature?: number;
 }
 
-export interface Agent {
+export interface AgentInfo extends AgentConfig {
     id: string;
-    name: string;
-    description: string;
-    config: AgentConfig;
-    created_at: string;
 }
 
 export interface Chatroom {
@@ -51,13 +48,13 @@ const getApiBase = (): string => {
 
 const API_BASE = getApiBase();
 
-export async function fetchAgents(): Promise<Agent[]> {
+export async function fetchAgents(): Promise<AgentInfo[]> {
     const res = await fetch(`${API_BASE}/agents/`);
     if (!res.ok) throw new Error("Failed to fetch agents");
     return res.json();
 }
 
-export async function createAgent(agentData: AgentConfig): Promise<Agent> {
+export async function createAgent(agentData: AgentConfig): Promise<AgentInfo> {
     const res = await fetch(`${API_BASE}/agents/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -70,7 +67,7 @@ export async function createAgent(agentData: AgentConfig): Promise<Agent> {
     return res.json();
 }
 
-export async function updateAgent(agentId: string, agentData: AgentConfig): Promise<Agent> {
+export async function updateAgent(agentId: string, agentData: AgentConfig): Promise<AgentInfo> {
     const res = await fetch(`${API_BASE}/agents/${agentId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },

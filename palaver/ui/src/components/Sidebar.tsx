@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { fetchChatrooms, createChatroom, fetchAgents, deleteAgent } from "../api";
-import type { Chatroom, Agent } from "../api";
+import type { Chatroom, AgentInfo } from "../api";
 import AgentModal from "./AgentModal";
 
 interface SidebarProps {
@@ -10,10 +10,10 @@ interface SidebarProps {
 
 export default function Sidebar({ activeChatroomId, onSelectChatroom }: SidebarProps) {
   const [chatrooms, setChatrooms] = useState<Chatroom[]>([]);
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [newRoomName, setNewRoomName] = useState("");
   const [showAgentModal, setShowAgentModal] = useState(false);
-  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
+  const [editingAgent, setEditingAgent] = useState<AgentInfo | null>(null);
 
   useEffect(() => {
     loadData();
@@ -53,7 +53,7 @@ export default function Sidebar({ activeChatroomId, onSelectChatroom }: SidebarP
     loadData();
   };
 
-  const handleAgentDeleted = async (agent: Agent) => {
+  const handleAgentDeleted = async (agent: AgentInfo) => {
     if (confirm(`Are you sure you want to delete the agent '${agent.name}'?`)) {
       try {
         await deleteAgent(agent.id);

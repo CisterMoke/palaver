@@ -3,7 +3,7 @@ import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import ParticipantsModal from "./ParticipantsModal";
 import { fetchChatroomMessages, fetchChatroomParticipants, fetchAgents } from "../api";
-import type { ChatMessage, Agent } from "../api";
+import type { ChatMessage, AgentInfo } from "../api";
 
 interface ChatWindowProps {
   chatroomId: string;
@@ -14,7 +14,7 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
   const [text, setText] = useState("");
   const [showParticipants, setShowParticipants] = useState(false);
   const [participantIds, setParticipantIds] = useState<string[]>([]);
-  const [agentMap, setAgentMap] = useState<Record<string, Agent>>({});
+  const [agentMap, setAgentMap] = useState<Record<string, AgentInfo>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -22,7 +22,7 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
   useEffect(() => {
     fetchAgents()
       .then((agents) => {
-        const map: Record<string, Agent> = {};
+        const map: Record<string, AgentInfo> = {};
         agents.forEach((a) => { map[a.id] = a; });
         setAgentMap(map);
       })

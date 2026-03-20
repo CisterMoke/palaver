@@ -291,19 +291,31 @@ class AgentService:
     def get_agent_config(self, agent_id: str) -> AgentConfig | None:
         """Get the configuration for an agent"""
         agent = self.get_agent(agent_id)
-        return agent.config if agent else None
+        for cfg in self.llm_config.agents:
+            if cfg.name == agent.name:
+                return cfg
+        
+        return None
     
     def update_agent_config(self, agent_id: str, config_update: dict[str, Any]) -> bool:
         """Update an agent's configuration"""
-        agent = self.get_agent(agent_id)
-        if not agent:
+        agent_config = self.get_agent_config(agent_id)
+        if not agent_config:
             return False
         
         # Update the agent's config
         for key, value in config_update.items():
-            if hasattr(agent.config, key):
-                setattr(agent.config, key, value)
+            if hasattr(agent_config, key):
+                setattr(agent_config, key, value)
         
+        self._save_llm_config()
+
+        # Update the agent itself
+        agent = self.get_agent(agent_id)
+        for key, value in config_update.items():
+            if hasattr(agent, key):
+                setattr(agent, key, value)
+                
         return True
 
     def create_provider(self, config: ProviderConfig) -> ProviderConfig | None:
