@@ -42,7 +42,7 @@ const getApiBase = (): string => {
     const api_host = import.meta.env.PALAVER_API_HOST
     const api_port = import.meta.env.PALAVER_API_PORT
     if ( api_host && api_port && import.meta.env.DEV) {
-        return `http://${api_host}:${api_port}/api`;
+        return `${api_host}:${api_port}/api`;
     } else {
         // Production mode: Use the same origin as the frontend
         return `${window.location.origin}/api`;
@@ -194,6 +194,34 @@ export async function removeChatroomParticipant(chatroomId: string, agentId: str
 
 export async function fetchChatroomMessages(chatroomId: string): Promise<ChatMessage[]> {
     const res = await fetch(`${API_BASE}/chatrooms/${chatroomId}/messages`);
+    if (!res.ok) throw new Error("Failed to fetch messages");
+    return res.json();
+}
+
+
+export async function fetchApiKeyNames(): Promise<string[]> {
+    const res = await fetch(`${API_BASE}/keys`);
+    if (!res.ok) throw new Error("Failed to fetch messages");
+    return res.json();
+}
+
+
+export async function updateApiKey(name: string, value: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/keys`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, value })
+
+    });
+    if (!res.ok) throw new Error("Failed to fetch messages");
+    return res.json();
+}
+
+
+export async function deleteApiKey(name: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/keys/${name}`, {
+        method: "DELETE",
+    });
     if (!res.ok) throw new Error("Failed to fetch messages");
     return res.json();
 }

@@ -8,7 +8,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from palaver.app.api import chatrooms, agents, providers
+from palaver.app.api import chatrooms, agents, providers, keys
 from palaver.app.connection_manager import manager
 from palaver.app.constants import UI_DIR
 from palaver.app.dataclasses.events import ChatMessageEvent, UserLeftEvent
@@ -32,6 +32,7 @@ app.add_middleware(
 app.include_router(chatrooms.router)
 app.include_router(agents.router)
 app.include_router(providers.router)
+app.include_router(keys.router)
 
 @app.websocket("/ws/{chatroom_id}")
 async def websocket_endpoint(websocket: WebSocket, chatroom_id: str):

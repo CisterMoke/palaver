@@ -30,14 +30,12 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
   const [loadingModels, setLoadingModels] = useState(false);
 
   useEffect(() => {
-    async function loadProviders(selectProvider?: string) {
+    async function loadProviders() {
       try {
         const providers = await fetchProviders();
         setAvailableProviders(providers);
         
-        if (selectProvider) {
-          setProvider(selectProvider);
-        } else if (providers.length > 0 && !provider) {
+        if (providers.length > 0 && !provider) {
           setProvider(providers[0].name);
         }
       } catch (err) {
@@ -159,19 +157,20 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
 
         {testResult && (
           <div className={`mb-4 p-3 border rounded text-sm ${
-            testResult.success 
-              ? "bg-green-50 border-green-200 text-green-800" 
-              : "bg-red-50 border-red-200 text-red-800"
+            testResult.success
+              ? "bg-green-100 border-green-300 text-green-700" 
+              : "bg-red-100 border border-red-300 text-red-700"
           }`}>
             <span className="font-bold">{testResult.success ? "Test Passed: " : "Test Failed: "}</span>
             {testResult.message}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4" autocomplete="off">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+            <label for="agent-name-input" className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
             <input
+              id="agent-name-input"
               type="text"
               className={`w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none ${existingAgent ? "bg-gray-100 text-gray-500" : ""}`}
               value={name}
@@ -183,8 +182,9 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label for="agent-description-input" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
             <input
+              id="agent-description-input"
               type="text"
               className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               value={description}
@@ -194,8 +194,9 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">System Prompt</label>
+            <label for="agent-system-prompt-input" className="block text-sm font-medium text-gray-700 mb-1">System Prompt</label>
             <textarea
+              id="agent-system-prompt-input"
               className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-25"
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.currentTarget.value)}
@@ -206,7 +207,7 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
           <div className="flex gap-4">
             <div className="flex-1">
               <div className="flex justify-between items-center mb-1">
-                <label className="block text-sm font-medium text-gray-700">Provider</label>
+                <label for="provider-options" className="block text-sm font-medium text-gray-700">Provider</label>
                 {provider && provider !== "new" && (
                   <div className="flex items-center gap-1">
                     <button type="button" onClick={() => setProviderModalMode("edit")} className="text-gray-400 hover:text-blue-500" title="Edit Provider">
@@ -222,7 +223,8 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
                   </div>
                 )}
               </div>
-              <select 
+              <select
+                id="provider-options"
                 className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 value={provider}
                 onChange={(e) => {
@@ -239,7 +241,7 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
                 ) : (
                   <>
                     {availableProviders.map(p => (
-                      <option key={p.name} value={p.name}>{p.name}</option>
+                      <option value={p.name}>{p.name}</option>
                     ))}
                     <option value="new" className="font-bold text-blue-600">+ new</option>
                   </>
@@ -247,10 +249,11 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
               </select>
             </div>
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label for="model-name-input" className="block text-sm font-medium text-gray-700 mb-1">
                 Model {loadingModels && <span className="text-gray-400 text-xs font-normal">(loading...)</span>}
               </label>
               <input
+                id="model-name-input"
                 type="text"
                 list="model-options"
                 className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"

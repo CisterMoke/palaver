@@ -96,7 +96,7 @@ export default function ParticipantsModal({ chatroomId, onClose, onChanged }: Pa
                     <button
                       onClick={() => toggle(agent)}
                       disabled={!!busy}
-                      className={`ml-3 flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                      className={`ml-3 shrink-0 px-3 py-1 rounded-full text-xs font-medium border transition-all ${
                         isBusy
                           ? "opacity-50 cursor-wait bg-gray-100 text-gray-400 border-gray-200"
                           : isParticipant
