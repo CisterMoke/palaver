@@ -1,8 +1,6 @@
-import json
 import os
 
 from pathlib import Path
-from typing import Any
 
 from palaver.app.constants import CHATROOMS_DIR
 from palaver.app.dataclasses.chatroom import Chatroom
@@ -59,7 +57,7 @@ def load_messages(chatroom_id: str) -> list[ChatMessage]:
 
 def save_message(chatroom_id: str, chat_message: ChatMessage):
     if chat_message.role == RoleEnum.ASSISTANT and not chat_message.content:
-        raise ValueError(f"Content cannot be empty for assistant message.")
+        raise ValueError("Content cannot be empty for assistant message.")
 
     message_json = chat_message.model_dump_json()
     messages_file = _ensure_dir(chatroom_id) / "messages.jsonl"

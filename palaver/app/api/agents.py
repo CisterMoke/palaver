@@ -2,8 +2,8 @@ from fastapi import APIRouter, HTTPException
 
 from palaver.app.config import AgentConfig
 from palaver.app.dataclasses.agent import AgentInfo, AgentResponse, CreateAgentRequest, DeleteResponse
-from palaver.app.dataclasses.message import Message, SendMessageRequest
-from palaver.app.enums import Role
+from palaver.app.dataclasses.message import Message
+from palaver.app.enums import RoleEnum
 from palaver.app.models.agent import Agent
 from palaver.app.services.agent_service import get_agent_service
 
@@ -17,6 +17,7 @@ async def list_agents():
     """List all agents"""
     return agent_service.list_agents()
 
+
 @router.get("/{agent_id}", response_model=AgentInfo)
 async def get_single_agent(agent_id: str):
     """Get a specific agent"""
@@ -25,19 +26,6 @@ async def get_single_agent(agent_id: str):
         raise HTTPException(status_code=404, detail="Agent not found")
     return agent
 
-@router.post("/{agent_id}/respond", response_model=AgentResponse)
-async def generate_agent_response(agent_id: str, request: SendMessageRequest):
-    """Generate a response from an agent"""
-    message = request.message
-    chat_history = request.history
-    
-    try:
-        response = await agent_service.generate_agent_response(
-            agent_id, message, chat_history
-        )
-        return response
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
 
 @router.post("/", response_model=AgentInfo)
 async def create_agent(request: CreateAgentRequest):
@@ -47,6 +35,7 @@ async def create_agent(request: CreateAgentRequest):
         raise HTTPException(status_code=400, detail="Agent already exists")
     else:
         return agent
+
 
 @router.put("/{agent_id}", response_model=AgentInfo)
 async def update_agent(agent_id: str, request: CreateAgentRequest):
@@ -61,6 +50,7 @@ async def update_agent(agent_id: str, request: CreateAgentRequest):
         
     return agent_service.get_agent(agent_id)
 
+
 @router.post("/test", response_model=AgentResponse)
 async def test_agent_connection(request: CreateAgentRequest):
     """Test an agent configuration without saving it"""
@@ -72,7 +62,7 @@ async def test_agent_connection(request: CreateAgentRequest):
     
     test_message = Message(
         sender="system", 
-        role=Role.USER, 
+        role=RoleEnum.USER, 
         content="Please reply with 'Connection successful' to confirm you are online."
     )
     
@@ -90,6 +80,7 @@ async def test_agent_connection(request: CreateAgentRequest):
         return resp
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+
 
 @router.delete("/{agent_id}", response_model=DeleteResponse)
 async def delete_agent(agent_id: str):

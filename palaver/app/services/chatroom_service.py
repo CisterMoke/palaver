@@ -1,16 +1,14 @@
-import os
 import re
 import uuid
 
 from datetime import datetime
 from loguru import logger
-from pydantic_core import to_jsonable_python
 
 import palaver.app.database.db as db
 
 from palaver.app.connection_manager import manager
-from palaver.app.dataclasses.chatroom import Chatroom
-from palaver.app.dataclasses.events import AgentResponseStartEvent, AgentResponseChunkEvent, AgentResponseCompleteEvent, AgentResponseErrorEvent
+from palaver.app.dataclasses.chatroom import Chatroom, ChatroomCreate, ChatroomUpdate
+from palaver.app.dataclasses.events import AgentResponseStartEvent, AgentResponseChunkEvent, AgentResponseCompleteEvent
 from palaver.app.dataclasses.message import ChatMessage, Message
 from palaver.app.enums import RoleEnum
 from palaver.app.services.agent_service import get_agent_service
@@ -20,9 +18,10 @@ from palaver.app.tools import send_agent_tool, Metadata
 agent_service = get_agent_service()
 
 
-def create_chatroom(name: str) -> Chatroom:
+def create_chatroom(create_request: ChatroomCreate) -> Chatroom:
     """Create a new chatroom"""
-    chatroom = Chatroom(name=name)
+    params = {k: v for k, v in create_request.model_dump().items() if v is not None}
+    chatroom = Chatroom.model_validate(params)
     db.save_chatroom(chatroom)
     return chatroom
 
@@ -33,6 +32,18 @@ def get_chatroom(chatroom_id: str) -> Chatroom | None:
         return db.get_chatroom(chatroom_id)
     except ValueError:
         logger.warning(f"Could not find chatroom with id '{chatroom_id}'")
+
+
+def update_chatroom(chatroom_id: str, update_request: ChatroomUpdate):
+    """Get a chatroom by ID"""
+    chatroom = get_chatroom(chatroom_id)
+    if chatroom is None:
+        return
+    
+    params = chatroom.model_dump() | {k: v for k, v in update_request.model_dump().items() if v is not None}
+    new_chatroom = Chatroom.model_validate(params)
+    db.save_chatroom(new_chatroom)
+    return
 
 
 def get_all_chatrooms() -> list[Chatroom]:
@@ -106,8 +117,11 @@ def create_message(chatroom_id: str, message: Message) -> ChatMessage:
     return chat_message
 
 
-def get_chatroom_messages(chatroom_id: str, limit: int = 100) -> list[ChatMessage]:
+def get_chatroom_messages(chatroom_id: str, limit: int = None) -> list[ChatMessage]:
     """Get messages from a chatroom"""
+    if limit is None:
+        return db.load_messages(chatroom_id)
+    
     return db.load_messages(chatroom_id)[-limit:]
 
 
@@ -121,7 +135,14 @@ def extract_target_ids(chatroom_id, agent_id: str, text: str) -> list[str] | Non
     return filter_target_ids(chatroom_id, target_ids)
 
 
-async def generate_agent_response_streaming(chatroom_id: str, agent_id: str, user_message: Message, chat_history: list[ChatMessage]) -> str:
+def is_depth_exceeded(chatroom_id: str, depth: int) -> bool:
+    chatroom = get_chatroom(chatroom_id)
+    if chatroom is None:
+        return True
+    return chatroom.limit_agent_chains and depth > chatroom.max_chain_depth
+
+
+async def generate_agent_response_streaming(chatroom_id: str, agent_id: str, user_message: Message, chat_history: list[ChatMessage], depth: int = 1) -> str:
     """
     Generate a response from an agent, stream tokens via WebSocket, and persist the final message.
     """
@@ -131,6 +152,8 @@ async def generate_agent_response_streaming(chatroom_id: str, agent_id: str, use
         chatroom_id=chatroom_id,
         agent_id=agent_id,
         chat_history=chat_history,
+        chain_depth=depth,
+        exceeds_max_depth=is_depth_exceeded(chatroom_id, depth)
     )
     
     async for event in agent_service.stream_agent_events(

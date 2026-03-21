@@ -15,6 +15,7 @@ async def list_providers():
     """List all providers"""
     return agent_service.llm_config.providers
 
+
 @providers_router.get("/{provider_name}", response_model=ProviderConfig)
 async def get_single_provider(provider_name: str):
     """Get a specific provider"""
@@ -22,6 +23,7 @@ async def get_single_provider(provider_name: str):
     if not agent:
         raise HTTPException(status_code=404, detail="Provider not found")
     return agent
+
 
 @providers_router.post("/", response_model=ProviderConfig)
 async def create_provider(request: CreateProviderRequest):
@@ -31,6 +33,7 @@ async def create_provider(request: CreateProviderRequest):
         raise HTTPException(status_code=400, detail="Provider already exists")
     else:
         return provider
+
 
 @providers_router.put("/{provider_name}", response_model=ProviderConfig)
 async def update_provider(provider_name: str, request: CreateProviderRequest):
@@ -44,6 +47,7 @@ async def update_provider(provider_name: str, request: CreateProviderRequest):
         
     return agent_service.get_provider(provider_name)
 
+
 @providers_router.delete("/{provider_name}", response_model=DeleteResponse)
 async def delete_provider(provider_name: str):
     """Delete a provider"""
@@ -53,6 +57,7 @@ async def delete_provider(provider_name: str):
     else:
         raise HTTPException(status_code=400, detail="Cannot delete provider - either not found or in use by agents")
 
+
 @providers_router.get("/{provider_name}/models", response_model=list[str])
 async def list_models(provider_name: str):
     try:
@@ -60,10 +65,14 @@ async def list_models(provider_name: str):
     except ValueError as e:
         raise HTTPException(status_code=404, detail="Provider not found") from e
 
+
 services_router = APIRouter()
+
+
 @services_router.get("/", response_model=list[str])
 async def list_supported_services():
     return SUPPORTED_SERVICES
+
 
 router = APIRouter(prefix="/api", tags=["providers"])
 router.include_router(providers_router, prefix="/providers")

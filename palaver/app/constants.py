@@ -44,3 +44,5 @@ SUPPORTED_SERVICES = [
   "vercel",
   "xai",
 ]
+
+MAX_DEPTH_MESSAGE = "Agent unavailable, please direct your message directly to the user."

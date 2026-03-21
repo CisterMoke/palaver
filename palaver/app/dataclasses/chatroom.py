@@ -14,10 +14,20 @@ def _create_timestamp() -> str:
 
 class ChatroomBase(BaseModel):
     name: str
+    limit_agent_chains: bool = True
+    max_chain_depth: int = 3
+    max_message_history: int = 20
 
 
 class ChatroomCreate(ChatroomBase):
     pass
+
+
+class ChatroomUpdate(ChatroomBase):
+    name: str | None = None
+    limit_agent_chains: bool | None = None
+    max_chain_depth: int | None = None
+    max_message_history: int | None = None
 
 
 class Chatroom(ChatroomBase):

@@ -90,6 +90,8 @@ class AgentManager:
                 if sender != agent_id:
                     model_messages.append(self._construct_user_message(msg.content, sender, RoleEnum.AGENT))
                 else:
+                    if not msg.content:
+                        continue
                     model_messages.append(ModelResponse(parts=[TextPart(content=msg.content)]))
         self._inject_system_prompt(system_prompt, model_messages)
         return model_messages

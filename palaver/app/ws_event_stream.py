@@ -6,12 +6,14 @@ from pydantic_core import from_json
 from pydantic_ai import AgentRunResultEvent
 from pydantic_ai.messages import (
     AgentStreamEvent, PartDeltaEvent, PartStartEvent, PartEndEvent,
-    TextPart, TextPartDelta, ToolCallPartDelta, ToolCallPart
+    TextPart, TextPartDelta, ToolCallPartDelta, ToolCallPart, FunctionToolResultEvent
 )
 
 from pydantic_ai.result import StreamedRunResult
 
 import palaver.app.dataclasses.events as ws_events
+
+from palaver.app.constants import MAX_DEPTH_MESSAGE
 
 
 class RunEventWSStream:
@@ -22,6 +24,7 @@ class RunEventWSStream:
     async def stream_ws_events(self) -> AsyncGenerator[ws_events.WebSocketEvent]:
         tool_args = ""
         send_reply = None
+        message_agent_tool_ids = []
         try:
             async for event in self.stream:
                 if isinstance(event, PartStartEvent):
@@ -40,6 +43,7 @@ class RunEventWSStream:
                         )
                     elif isinstance(part, ToolCallPart) and part.tool_name == "message_agent":
                         message_id = str(uuid.uuid4())
+                        message_agent_tool_ids.append(part.tool_call_id)
                         send_reply = False if send_reply is None else send_reply
                         yield ws_events.AgentResponseStartEvent(
                             agent_id=self.agent_id, message_id=message_id
@@ -88,6 +92,8 @@ class RunEventWSStream:
                     yield ws_events.AgentResponseCompleteEvent(
                         agent_id=self.agent_id, message_id=message_id, content=content
                     )
+                elif isinstance(event, FunctionToolResultEvent) and event.tool_call_id in message_agent_tool_ids:
+                    send_reply = True if (event.content == MAX_DEPTH_MESSAGE) else send_reply
         except Exception as e:
             yield ws_events.AgentResponseErrorEvent(
                 agent_id=self.agent_id,
