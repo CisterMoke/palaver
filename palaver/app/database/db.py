@@ -22,16 +22,20 @@ def _ensure_dir(chatroom_id: str) -> Path:
 def save_chatroom(chatroom: Chatroom):
     chatroom_dir = _ensure_dir(chatroom.chatroom_id)
     with open(chatroom_dir / "config.json", "w") as f:
-        f.write(chatroom.model_dump_json())
+        f.write(chatroom.model_dump_json(by_alias=True))
 
 
 def get_chatroom(chatroom_id: str) -> Chatroom:
-    config_file = _ensure_dir(chatroom_id) / "config.json"
+    config_file = CHATROOMS_DIR / chatroom_id / "config.json"
     if not config_file.exists():
+        print(config_file)
         raise ValueError(f"No chatroom found with id '{chatroom_id}'.")
     
     with open(config_file, "rb") as f:
-        return Chatroom.model_validate_json(f.read())
+        content = f.read()
+        chatroom = Chatroom.model_validate_json(content, by_alias=True)
+    assert chatroom.chatroom_id == chatroom_id
+    return chatroom
 
 
 def load_chatrooms() -> list[Chatroom]:
@@ -44,13 +48,13 @@ def load_chatrooms() -> list[Chatroom]:
 
 def load_messages(chatroom_id: str) -> list[ChatMessage]:
     chat_messages = []
-    messages_file = _ensure_dir(chatroom_id) / "messages.jsonl"
+    messages_file = CHATROOMS_DIR / chatroom_id / "messages.jsonl"
     if not messages_file.exists():
         return chat_messages
     
     with open(messages_file, "rb") as f:
         for line in f:
-            chat_message = ChatMessage.model_validate_json(line.rstrip("\n"))
+            chat_message = ChatMessage.model_validate_json(line.rstrip(b"\n"))
             chat_messages.append(chat_message)
     return chat_messages
 

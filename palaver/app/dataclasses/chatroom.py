@@ -4,6 +4,9 @@ import uuid
 from pydantic import BaseModel, Field
 
 
+from palaver.app.enums import RouterType
+
+
 def _create_uuid() -> str:
     return str(uuid.uuid4())
 
@@ -17,6 +20,7 @@ class ChatroomBase(BaseModel):
     limit_agent_chains: bool = True
     max_chain_depth: int = 3
     max_message_history: int = 20
+    router_type: RouterType = RouterType.DETERMINISTIC
 
 
 class ChatroomCreate(ChatroomBase):

@@ -6,3 +6,8 @@ class RoleEnum(StrEnum):
     ASSISTANT = "assistant"
     SYSTEM = "system"
     USER = "user"
+
+
+class RouterType(StrEnum):
+    DETERMINISTIC = "deterministic"
+    RANDOM = "random"

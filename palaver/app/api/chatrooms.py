@@ -91,7 +91,7 @@ async def send_message(chatroom_id: str, message: Message, background_tasks: Bac
     
     for agent_id in stored_message.target_agent_ids or []:
         background_tasks.add_task(
-            chat_service.generate_agent_response_streaming,
+            chat_service.run_agent_loop,
             chatroom_id=chatroom_id,
             agent_id=agent_id,
             user_message=message,

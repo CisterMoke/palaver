@@ -70,7 +70,8 @@ async def test_agent_connection(request: CreateAgentRequest):
         response_text, success = await agent_service.agent_manager._generate_llm_response(
             temp_agent, 
             test_message, 
-            []
+            [],
+            "Please reply with 'Connection successful' to confirm you are online."
         )
         resp = agent_service.agent_manager._parse_agent_response(
             agent_id=temp_agent.id,

@@ -15,6 +15,9 @@ class ChatMessage(Message):
     chatroom_id: str
     timestamp: str
 
+    def to_message(self) -> Message:
+        return Message(**self.model_dump(exclude={"id", "chatroom_id", "timestamp"}))
+
 
 class SendMessageRequest(BaseModel):
     message: Message

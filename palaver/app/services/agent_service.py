@@ -13,10 +13,10 @@ from palaver.app.dataclasses.events import AgentResponseChunkEvent
 from palaver.app.dataclasses.llm import ChatroomMessage
 from palaver.app.dataclasses.message import Message
 from palaver.app.enums import RoleEnum
-from palaver.app.ws_event_stream import RunEventWSStream, OutputEventWSStream, TextWSStream
+from palaver.app.ws_event_stream import AgentRunWSStream, RunEventWSStream, OutputEventWSStream, TextWSStream
 from palaver.app.models.agent import Agent, ProviderModels
 from palaver.app.prompts import BASE_PROMPT
-from palaver.app.tools import Metadata
+from palaver.app.dataclasses.run_deps import RunDeps
 
 
 class AgentManager:
@@ -104,7 +104,6 @@ class AgentManager:
         system_prompt: str,
     ) -> tuple[ChatroomMessage|str, bool]:
         message_history = self._construct_messages(agent.id, system_prompt, chat_history + [message])
-
         try:
             result = await agent._inner.run(
                 user_prompt=message_history[-1].parts[0].content,
@@ -122,7 +121,7 @@ class AgentManager:
         message: Message,
         chat_history: list[Message],
         system_prompt: str,
-        metadata: Metadata,
+        run_deps: RunDeps,
         tools: list,
         delta: bool = None,
     ) -> AsyncGenerator[str, None]:
@@ -132,7 +131,7 @@ class AgentManager:
         async with agent._inner.run_stream(
             user_prompt=message_history[-1].parts[0].content,
             message_history=message_history[:-1],
-            deps=metadata,
+            deps=run_deps,
             toolsets=[FunctionToolset(tools=tools)],
             output_type=str,
         ) as result:
@@ -145,18 +144,43 @@ class AgentManager:
         message: Message,
         chat_history: list[Message],
         system_prompt: str,
-        metadata: Metadata,
+        run_deps: RunDeps,
         tools: list,
+        event_stream_handler = None
     ):
         message_history = self._construct_messages(agent.id, system_prompt, chat_history + [message])
 
         stream = agent._inner.run_stream(
             user_prompt=message_history[-1].parts[0].content,
             message_history=message_history[:-1],
-            deps=metadata,
-            toolsets=[FunctionToolset(tools=tools)]
+            deps=run_deps,
+            toolsets=[FunctionToolset(tools=tools)],
+            event_stream_handler=event_stream_handler,
         )
         return stream
+
+    def _agent_run(
+        self,
+        agent: Agent,
+        message: Message,
+        chat_history: list[Message],
+        system_prompt: str,
+        run_deps: RunDeps,
+        tools: list = None,
+        event_stream_handler = None
+    ):
+        if chat_history:
+            logger.debug(chat_history[-1])
+        message_history = self._construct_messages(agent.id, system_prompt, chat_history + [message])
+
+        run = agent._inner.run(
+            user_prompt=message_history[-1].parts[0].content,
+            message_history=message_history[:-1],
+            deps=run_deps,
+            toolsets=[FunctionToolset(tools=tools)] if tools is not None else None,
+            event_stream_handler=event_stream_handler,
+        )
+        return run
     
     def _agent_run_stream_events(
         self,
@@ -164,7 +188,7 @@ class AgentManager:
         message: Message,
         chat_history: list[Message],
         system_prompt: str,
-        metadata: Metadata,
+        run_deps: RunDeps,
         tools: list,
     ):
         message_history = self._construct_messages(agent.id, system_prompt, chat_history + [message])
@@ -172,7 +196,7 @@ class AgentManager:
         stream = agent._inner.run_stream_events(
             user_prompt=message_history[-1].parts[0].content,
             message_history=message_history[:-1],
-            deps=metadata,
+            deps=run_deps,
             toolsets=[FunctionToolset(tools=tools)]
         )
         return stream
@@ -387,15 +411,20 @@ class AgentService:
         return self.agent_manager.list_agents()
     
     def create_system_prompt(self, agent_id: str, other_agent_ids: list[str]) -> str:
+        agent = self.get_agent(agent_id)
         other_agents: list[AgentInfo] = []
         for aid in other_agent_ids:
             if (agent := self.get_agent(aid)) is not None:
                 other_agents.append(agent)
         
-        agent_descriptions = "\n".join([f"- AGENT ({agent.name}): {agent.description}" for agent in other_agents])
+        other_agent_descriptions = "\n".join([f"- AGENT ({agent.name}): {agent.description}" for agent in other_agents])
         agent_prompt = self.get_agent(agent_id).prompt
         return BASE_PROMPT.replace(
-            "[[agent_descriptions]]", agent_descriptions
+            "[[agent_name]]", agent.name
+        ).replace(
+            "[[agent_description]]", agent.description
+        ).replace(
+            "[[other_agent_descriptions]]", other_agent_descriptions
         ).replace(
             "[[agent_prompt]]", agent_prompt
         )
@@ -404,7 +433,7 @@ class AgentService:
         self, agent_id: str, message: Message,
         chat_history: list[Message],
         system_prompt: str,
-        metadata: Metadata,
+        run_deps: RunDeps,
         tools: list,
     ) -> AsyncGenerator[str, None]:
         agent = self.agent_manager.get_agent(agent_id)
@@ -415,7 +444,7 @@ class AgentService:
             message=message,
             chat_history=chat_history,
             system_prompt=system_prompt,
-            metadata=metadata,
+            run_deps=run_deps,
             tools=tools,
         )
         event_stream = TextWSStream(response_stream, agent_id)
@@ -429,7 +458,7 @@ class AgentService:
         message: Message,
         chat_history: list[Message],
         system_prompt: str,
-        metadata: Metadata,
+        run_deps: RunDeps,
         tools: list,
     ):
         agent = self.agent_manager.get_agent(agent_id)
@@ -440,7 +469,7 @@ class AgentService:
             message=message,
             chat_history=chat_history,
             system_prompt=system_prompt,
-            metadata=metadata,
+            run_deps=run_deps,
             tools=tools,
         )
         event_stream = OutputEventWSStream(response_stream, agent_id)
@@ -448,13 +477,13 @@ class AgentService:
             logger.debug(f"Agent Response Event: {event.model_dump()}")
             yield event
 
-    async def stream_agent_events(
+    async def stream_agent_events_old(
         self,
         agent_id: str,
         message: Message,
         chat_history: list[Message],
         system_prompt: str,
-        metadata: Metadata,
+        run_deps: RunDeps,
         tools: list,
     ):
         agent = self.agent_manager.get_agent(agent_id)
@@ -465,13 +494,40 @@ class AgentService:
             message=message,
             chat_history=chat_history,
             system_prompt=system_prompt,
-            metadata=metadata,
+            run_deps=run_deps,
             tools=tools,
         )
         event_stream = RunEventWSStream(response_stream, agent_id)
         async for event in event_stream.stream_ws_events():
             if not isinstance(event, AgentResponseChunkEvent):
                 logger.debug(f"Agent Response Event: {event.model_dump()}")
+            yield event
+
+    async def stream_agent_events(
+        self,
+        agent_id: str,
+        message: Message,
+        chat_history: list[Message],
+        system_prompt: str,
+        run_deps: RunDeps,
+        tools: list,
+    ):
+        agent = self.agent_manager.get_agent(agent_id)
+        if not agent:
+            raise ValueError(f"Agent {agent_id} not found")
+        event_stream = AgentRunWSStream(agent_id)
+        agent_run = self.agent_manager._agent_run(
+            agent=agent,
+            message=message,
+            chat_history=chat_history,
+            system_prompt=system_prompt,
+            run_deps=run_deps,
+            tools=tools,
+            event_stream_handler=event_stream.event_handler
+        )
+        async for event in event_stream.stream_ws_events_run(agent_run):
+            if not isinstance(event, AgentResponseChunkEvent):
+                logger.debug(f"{agent_id}: Agent Response Event: {event.model_dump()}")
             yield event
     
     async def delegate_message(self, agent_id: str, target_agent_ids: list[str], message: Message,

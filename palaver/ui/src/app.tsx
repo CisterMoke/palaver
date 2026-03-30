@@ -13,7 +13,7 @@ export function App() {
         activeChatroomId={activeChatroomId} 
         onSelectChatroom={setActiveChatroomId} 
       />
-      <div className="flex-1 flex flex-col p-0">
+      <div className="w-3/4 flex-1 flex flex-col p-0">
         {activeChatroomId ? (
           <ChatWindow chatroomId={activeChatroomId} />
         ) : (

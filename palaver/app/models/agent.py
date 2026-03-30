@@ -9,7 +9,7 @@ from pydantic_ai.providers import Provider, infer_provider_class
 
 from palaver.app.config import ProviderConfig
 from palaver.app.dataclasses.agent import AgentInfo
-from palaver.app.tools import Metadata
+from palaver.app.dataclasses.run_deps import RunDeps
 
 
 class Agent:
@@ -40,7 +40,7 @@ class Agent:
             model=agent_model,
             instructions=None if not self.instructions else self.instructions,
             model_settings=model_settings,
-            deps_type=Metadata,
+            deps_type=RunDeps,
             end_strategy="exhaustive",
         )
         return pydantic_agent

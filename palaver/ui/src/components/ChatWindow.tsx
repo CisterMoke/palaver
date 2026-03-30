@@ -220,7 +220,7 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 overflow-x-hidden">
         <MessageList messages={messages} />
         <div ref={bottomRef} />
       </div>
