@@ -4,3 +4,4 @@ data/
 *.pyc
 __pycache__
 config.toml
+opencode.json

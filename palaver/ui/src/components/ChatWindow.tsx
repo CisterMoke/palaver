@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "preact/hooks";
+import { useState, useRef, useEffect, useMemo } from "preact/hooks";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import ParticipantsModal from "./ParticipantsModal";
@@ -16,7 +16,70 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
   const [participantIds, setParticipantIds] = useState<string[]>([]);
   const [agentMap, setAgentMap] = useState<Record<string, AgentInfo>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<ChatMessage[]>([]);
+  const redactionFramesRef = useRef<Record<string, number>>({});
   const wsRef = useRef<WebSocket | null>(null);
+
+  const cancelRedaction = (messageId: string) => {
+    const frameId = redactionFramesRef.current[messageId];
+    if (frameId === undefined) return;
+    cancelAnimationFrame(frameId);
+    delete redactionFramesRef.current[messageId];
+  };
+
+  const cancelAllRedactions = () => {
+    Object.values(redactionFramesRef.current).forEach((frameId) => cancelAnimationFrame(frameId));
+    redactionFramesRef.current = {};
+  };
+
+  const startRedaction = (messageId: string) => {
+    cancelRedaction(messageId);
+
+    const message = messagesRef.current.find((entry) => entry.id === messageId);
+    if (!message || !message.content) return;
+
+    const originalText = message.content;
+    const totalChars = originalText.length;
+    if (totalChars === 0) return;
+
+    const FIXED_ANIMATION_MS = 700;
+    const MIN_ERASE_CHARS_PER_SECOND = 24;
+    const eraseDurationMs = Math.min(
+      FIXED_ANIMATION_MS,
+      Math.max(1, (totalChars / MIN_ERASE_CHARS_PER_SECOND) * 1000)
+    );
+
+    const startedAt = performance.now();
+
+    const animate = (now: number) => {
+      const elapsed = now - startedAt;
+      const progress = Math.min(1, elapsed / eraseDurationMs);
+      const keepChars = Math.max(0, Math.ceil(totalChars * (1 - progress)));
+
+      setMessages((prev) =>
+        prev.map((entry) =>
+          entry.id === messageId
+            ? { ...entry, content: originalText.slice(0, keepChars) }
+            : entry
+        )
+      );
+
+      if (elapsed < FIXED_ANIMATION_MS) {
+        redactionFramesRef.current[messageId] = requestAnimationFrame(animate);
+      } else {
+        setMessages((prev) =>
+          prev.map((entry) => (entry.id === messageId ? { ...entry, content: "" } : entry))
+        );
+        delete redactionFramesRef.current[messageId];
+      }
+    };
+
+    redactionFramesRef.current[messageId] = requestAnimationFrame(animate);
+  };
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Load agent map once
   useEffect(() => {
@@ -62,51 +125,78 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
     ws.onmessage = (event) => {
       if (!active) return;
 
-      const data = JSON.parse(event.data);
+      const data = JSON.parse(event.data) as { type?: string; [key: string]: unknown };
+      const asString = (value: unknown): string | undefined =>
+        typeof value === "string" ? value : undefined;
 
       if (data.type === "chat_message") {
         setMessages((prev) => {
-          const exists = prev.some((msg) => msg.id === data.id);
+          const messageId = asString(data.id);
+          const exists = messageId ? prev.some((msg) => msg.id === messageId) : false;
+
           if (exists) {
-            return prev.map(msg => msg.id === data.id ? { ...msg, status: undefined } : msg);
+            return prev.map((msg) => (msg.id === messageId ? { ...msg, status: undefined } : msg));
           }
+
           return [
             ...prev,
             {
-              id: data.id || data.timestamp || Date.now().toString(),
+              id: messageId ?? asString(data.timestamp) ?? Date.now().toString(),
               chatroom_id: chatroomId,
-              sender: data.sender,
-              role: data.role || "user",
-              content: data.content,
-              timestamp: data.timestamp,
+              sender: asString(data.sender) ?? "unknown",
+              role: data.role === "assistant" || data.role === "system" ? data.role : "user",
+              content: asString(data.content) ?? "",
+              timestamp: asString(data.timestamp) ?? new Date().toISOString(),
             },
           ];
         });
       } else if (data.type === "agent_response_start") {
+        const messageId = asString(data.message_id);
+        if (!messageId) return;
+        cancelRedaction(messageId);
+
         setMessages((prev) => [
-          ...prev,
+          ...prev.filter((entry) => entry.id !== messageId),
           {
-            id: data.message_id,
+            id: messageId,
             chatroom_id: chatroomId,
-            sender: data.agent_id,
+            sender: asString(data.agent_id) ?? "unknown",
+            recipient: asString(data.recipient),
             role: "assistant",
             content: "",
             timestamp: new Date().toISOString(),
-          },
+          }
         ]);
       } else if (data.type === "agent_response_chunk") {
+        const messageId = asString(data.message_id);
+        if (!messageId) return;
+        cancelRedaction(messageId);
+
+        const delta = asString(data.delta) ?? "";
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === data.message_id
-              ? { ...msg, content: msg.content + data.delta }
+            msg.id === messageId
+              ? {
+                  ...msg,
+                  recipient: asString(data.recipient) ?? msg.recipient,
+                  content: msg.content + delta,
+                }
               : msg
           )
         );
       } else if (data.type === "agent_response_complete") {
+        const messageId = asString(data.message_id);
+        if (!messageId) return;
+        cancelRedaction(messageId);
+
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === data.message_id
-              ? { ...msg, content: data.content }
+            msg.id === messageId
+              ? {
+                  ...msg,
+                  recipient: asString(data.recipient) ?? msg.recipient,
+                  content: asString(data.content) ?? msg.content,
+                }
               : msg
           )
         );
@@ -117,21 +207,28 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
           {
             id: `err-${Date.now()}`,
             chatroom_id: chatroomId,
-            sender: data.agent_id,
+            sender: asString(data.agent_id) ?? "unknown",
             role: "system" as const,
             content: `⚠️ Error: ${data.error}`,
             timestamp: new Date().toISOString(),
             status: "error" as const,
           },
         ]);
+      } else if (data.type === "redact_agent_response") {
+        const messageId = asString(data.message_id);
+        if (!messageId) return;
+        startRedaction(messageId);
       }
     };
 
     return () => {
       active = false;
+      cancelAllRedactions();
       ws.close();
     };
   }, [chatroomId]);
+
+  useEffect(() => () => cancelAllRedactions(), []);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -189,9 +286,21 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
     }
   };
 
+  const agentNameMap = useMemo(() => {
+    const map: Record<string, AgentInfo> = {};
+    Object.values(agentMap).forEach((agent) => {
+      map[agent.name] = agent;
+    });
+    return map;
+  }, [agentMap]);
+
+  const resolveAgentName = (idOrName: string) => {
+    return agentMap[idOrName]?.name ?? agentNameMap[idOrName]?.name ?? idOrName;
+  };
+
   // Resolve participant names from the agent map
   const participantNames = participantIds
-    .map((id) => agentMap[id]?.name ?? id)
+    .map((id) => resolveAgentName(id))
     .join(", ");
 
   return (
@@ -221,7 +330,7 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 overflow-x-hidden">
-        <MessageList messages={messages} />
+        <MessageList messages={messages} resolveAgentName={resolveAgentName} />
         <div ref={bottomRef} />
       </div>
       <div className="p-4 bg-gray-50 border-t border-gray-200">
