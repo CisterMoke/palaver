@@ -1,8 +1,6 @@
-from palaver.app.events.ui import ChatMessageEvent
 from palaver.app.init import init
 init()
 
-import asyncio
 import json
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -13,8 +11,6 @@ from palaver.app.api import chatrooms, agents, providers, keys
 from palaver.app.websocket_manager import get_ws_manager
 from palaver.app.constants import UI_DIR
 from palaver.app.events.ui import UserLeftEvent
-from palaver.app.dataclasses.message import Message
-from palaver.app.enums import RoleEnum
 
 
 app = FastAPI()

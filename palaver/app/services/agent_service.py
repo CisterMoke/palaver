@@ -17,7 +17,6 @@ from palaver.app.config import AgentConfig, LLMConfig, ProviderConfig
 from palaver.app.dataclasses.agent import (
     AgentInfo,
     AgentResponse,
-    DelegationRequest,
     MessageTarget,
 )
 from palaver.app.dataclasses.llm import ChatroomMessage

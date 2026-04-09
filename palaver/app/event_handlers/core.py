@@ -12,7 +12,7 @@ class AwaitTracker:
             self.results: list[str] = []
 
     def __init__(self):
-        self.track_record: dict[str, 'AwaitTracker.TrackItem'] = dict()
+        self.track_record: dict[str, AwaitTracker.TrackItem] = dict()
 
     def track_new(self, event: AwaitAgentEvent):
         logger.debug(f"Tracking new AwaitAgentEvent '{event.run_id}'")

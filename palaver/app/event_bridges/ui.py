@@ -1,7 +1,5 @@
 import uuid
 
-from anyio.streams.memory import MemoryObjectSendStream
-from loguru import logger
 from pydantic_ai.capabilities import Hooks
 from pydantic_ai.messages import (
     AgentStreamEvent,

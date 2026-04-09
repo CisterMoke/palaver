@@ -95,7 +95,7 @@ class AgentLoop:
         logger.debug(f"Agent {agent_id} capabilities: {agent.capabilities}, _inner: {agent._inner}")
         
         async def event_stream_handler(ctx, stream):
-            async for event in stream:
+            async for _event in stream:
                 ...
         
         await self.agent_manager._agent_run(

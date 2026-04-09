@@ -1,6 +1,5 @@
 import abc
 
-from palaver.app.events import Event
 
 
 class BaseEventHandler(abc.ABC):

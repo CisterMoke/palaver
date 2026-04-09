@@ -15,7 +15,7 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.tools import RunContext, ToolDefinition
 from pydantic_core import from_json
-from typing import Iterator
+from collections.abc import Iterator
 
 from palaver.app.agent_loop.stream_session import StreamSession
 from palaver.app.events.ui import (

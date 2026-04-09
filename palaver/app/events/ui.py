@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from palaver.app.dataclasses.message import ChatMessage
 
