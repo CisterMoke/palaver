@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "palaver"
-version = "0.0.1"
-description = "A Multi-Agent AI chatroom."
+version = "0.0.2"
+description = "A true Multi-Agent AI chatroom application."
 authors = [{ name = "Ruben Dedoncker", email = "ruben@dedoncker.dev" }]
 readme = "README.md"
 requires-python = ">=3.12"

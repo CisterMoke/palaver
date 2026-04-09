@@ -1,6 +1,6 @@
 
 # Palaver
-A true Multi-Agent chatroom application.
+A true Multi-Agent AI chatroom application.
 
 Create, chat and collaborate with your personal AI agents in a single chatroom. You can let each agent interact with eachother and observe how the chaos unfolds.
 
