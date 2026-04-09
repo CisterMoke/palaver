@@ -1,10 +1,11 @@
 import json
 
 from fastapi import WebSocket
+from functools import lru_cache
 from typing import Any
 
 
-class ConnectionManager:
+class WebSocketManager:
     def __init__(self):
         self.active_connections: dict[str, list[WebSocket]] = {}  # chatroom_id -> [WebSocket]
 
@@ -30,4 +31,6 @@ class ConnectionManager:
         await self.broadcast(json.dumps(data), chatroom_id)
 
 
-manager = ConnectionManager()
+@lru_cache
+def get_ws_manager():
+    return WebSocketManager()

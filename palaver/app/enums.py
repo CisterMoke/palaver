@@ -8,6 +8,6 @@ class RoleEnum(StrEnum):
     USER = "user"
 
 
-class RouterType(StrEnum):
-    DETERMINISTIC = "deterministic"
+class RoutingType(StrEnum):
+    AUTONOMOUS = "autonomous"
     RANDOM = "random"

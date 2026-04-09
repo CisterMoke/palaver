@@ -1,3 +1,4 @@
+from palaver.app.events.ui import ChatMessageEvent
 from palaver.app.init import init
 init()
 
@@ -9,12 +10,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from palaver.app.api import chatrooms, agents, providers, keys
-from palaver.app.connection_manager import manager
+from palaver.app.websocket_manager import get_ws_manager
 from palaver.app.constants import UI_DIR
-from palaver.app.dataclasses.events import ChatMessageEvent, UserLeftEvent
+from palaver.app.events.ui import UserLeftEvent
 from palaver.app.dataclasses.message import Message
 from palaver.app.enums import RoleEnum
-from palaver.app.services.chatroom_service import generate_agent_response_streaming
 
 
 app = FastAPI()
@@ -37,46 +37,19 @@ app.include_router(keys.router)
 
 @app.websocket("/ws/{chatroom_id}")
 async def websocket_endpoint(websocket: WebSocket, chatroom_id: str):
-    await manager.connect(websocket, chatroom_id)
+    ws_manager = get_ws_manager()
+    await ws_manager.connect(websocket, chatroom_id)
     try:
         while True:
             data = await websocket.receive_text()
             message = json.loads(data)
             
-            # Handle different message types
-            if message["type"] == "chat_message":
-                print("Entered websocket")
-                chat_event = ChatMessageEvent.model_validate(message)
-                # Broadcast message to all participants in the chatroom
-                await manager.broadcast(
-                    chat_event.model_dump_json(),
-                    chatroom_id
-                )
-                
-                # If target agents specified, generate responses asynchronously
-                target_agent_ids = chat_event.target_agent_ids
-                if target_agent_ids:
-                    user_message = Message(
-                        sender=chat_event.sender,
-                        role=RoleEnum.USER,
-                        content=chat_event.content,
-                        target_agent_ids=target_agent_ids
-                    )
-                    
-                    for agent_id in target_agent_ids:
-                        asyncio.create_task(
-                            generate_agent_response_streaming(
-                                chatroom_id=chatroom_id,
-                                agent_id=agent_id,
-                                user_message=user_message
-                            )
-                        )
-            elif message["type"] == "agent_command":
+            if message["type"] == "agent_command":
                 # Handle agent-specific commands
                 await handle_agent_command(message, websocket, chatroom_id)
     except WebSocketDisconnect:
-        manager.disconnect(websocket, chatroom_id)
-        await manager.broadcast(
+        ws_manager.disconnect(websocket, chatroom_id)
+        await ws_manager.broadcast(
             UserLeftEvent(message="A user left the chatroom").model_dump_json(),
             chatroom_id,
         )

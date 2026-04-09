@@ -11,8 +11,9 @@ export default function MessageList({ messages, resolveAgentName }: MessageListP
     <div className="flex-1 flex flex-col gap-2">
       {messages.map((msg) => {
         const sender = resolveAgentName(msg.sender);
-        const recipient = msg.recipient && msg.recipient.toUpperCase() !== "USER"
-          ? resolveAgentName(msg.recipient)
+        const first_recipient = msg.recipients?.[0];
+        const recipient = first_recipient && first_recipient.toUpperCase() !== "USER"
+          ? resolveAgentName(first_recipient)
           : undefined;
 
         return (

@@ -13,6 +13,7 @@ from palaver.app.dataclasses.run_deps import RunDeps
 
 
 class Agent:
+    # TODO: Rework this class together with AgentManager
     @classmethod
     def _provider_factory(cls, provider_config: ProviderConfig):
         def get_provider(*args, **kwargs) -> Provider:
@@ -26,13 +27,26 @@ class Agent:
             return provider_class(api_key=api_key, base_url=api_base)
         return get_provider
 
-    def __init__(self, agent_info: AgentInfo, provider_config: ProviderConfig):
+    def __init__(self, agent_info: AgentInfo, provider_config: ProviderConfig, capabilities=None):
         self.info = agent_info
-        self._inner = self._init_inner_agent(provider_config)
+        self.provider = provider_config
+        self.capabilities = capabilities
+        self._inner: PydanticAgent | None = None
+          
+    def __setattr__(self, name, value):
+        if name == "capabilities":
+            self._inner = None
+        super().__setattr__(name, value)
 
-    def _init_inner_agent(self, provider_config: ProviderConfig) -> PydanticAgent:
-        full_name = f"{provider_config.service}:{self.model}"
-        agent_model = infer_model(model=full_name, provider_factory=self._provider_factory(provider_config))
+    @property
+    def inner(self) -> PydanticAgent:
+        if self._inner is None:
+            self._inner = self._init_inner_agent()
+        return self._inner
+
+    def _init_inner_agent(self) -> PydanticAgent:
+        full_name = f"{self.provider.service}:{self.model}"
+        agent_model = infer_model(model=full_name, provider_factory=self._provider_factory(self.provider))
         model_settings = ModelSettings(
             temperature=None if self.info.temperature < 0 else self.info.temperature
         )
@@ -42,8 +56,12 @@ class Agent:
             model_settings=model_settings,
             deps_type=RunDeps,
             end_strategy="exhaustive",
+            capabilities=self.capabilities,
         )
         return pydantic_agent
+    
+    def clone(self) -> 'Agent':
+        return self.__class__(self.info, self.provider, self.capabilities)
 
     @property
     def id(self) -> str:
@@ -60,6 +78,10 @@ class Agent:
     @property
     def name(self) -> str:
         return self.info.name
+    
+    @property
+    def description(self) -> str:
+        return self.info.description
     
     @property
     def system_prompt(self) -> str:

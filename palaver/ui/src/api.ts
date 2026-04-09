@@ -28,7 +28,7 @@ export interface ChatMessage {
     id: string;
     chatroom_id: string;
     sender: string;
-    recipient?: string;
+    recipients?: string[];
     role: "user" | "assistant" | "system";
     content: string;
     timestamp: string;

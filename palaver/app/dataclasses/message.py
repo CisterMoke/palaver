@@ -7,7 +7,11 @@ class Message(BaseModel):
     sender: str
     role: RoleEnum
     content: str
-    target_agent_ids: list[str] | None = None
+    recipients: list[str] | None = None
+
+
+class IncomingMessage(Message):
+    sender: str = "USER"
 
 
 class ChatMessage(Message):

@@ -20,21 +20,7 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
   const redactionFramesRef = useRef<Record<string, number>>({});
   const wsRef = useRef<WebSocket | null>(null);
 
-  const cancelRedaction = (messageId: string) => {
-    const frameId = redactionFramesRef.current[messageId];
-    if (frameId === undefined) return;
-    cancelAnimationFrame(frameId);
-    delete redactionFramesRef.current[messageId];
-  };
-
-  const cancelAllRedactions = () => {
-    Object.values(redactionFramesRef.current).forEach((frameId) => cancelAnimationFrame(frameId));
-    redactionFramesRef.current = {};
-  };
-
   const startRedaction = (messageId: string) => {
-    cancelRedaction(messageId);
-
     const message = messagesRef.current.find((entry) => entry.id === messageId);
     if (!message || !message.content) return;
 
@@ -42,7 +28,7 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
     const totalChars = originalText.length;
     if (totalChars === 0) return;
 
-    const FIXED_ANIMATION_MS = 700;
+    const FIXED_ANIMATION_MS = 1000;
     const MIN_ERASE_CHARS_PER_SECOND = 24;
     const eraseDurationMs = Math.min(
       FIXED_ANIMATION_MS,
@@ -68,7 +54,7 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
         redactionFramesRef.current[messageId] = requestAnimationFrame(animate);
       } else {
         setMessages((prev) =>
-          prev.map((entry) => (entry.id === messageId ? { ...entry, content: "" } : entry))
+          prev.filter((entry) => (entry.id !== messageId))
         );
         delete redactionFramesRef.current[messageId];
       }
@@ -153,7 +139,6 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
       } else if (data.type === "agent_response_start") {
         const messageId = asString(data.message_id);
         if (!messageId) return;
-        cancelRedaction(messageId);
 
         setMessages((prev) => [
           ...prev.filter((entry) => entry.id !== messageId),
@@ -161,7 +146,9 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
             id: messageId,
             chatroom_id: chatroomId,
             sender: asString(data.agent_id) ?? "unknown",
-            recipient: asString(data.recipient),
+            recipients: (
+                    asString(data.recipient) ? [asString(data.recipient)!] : []
+                  ),
             role: "assistant",
             content: "",
             timestamp: new Date().toISOString(),
@@ -170,7 +157,6 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
       } else if (data.type === "agent_response_chunk") {
         const messageId = asString(data.message_id);
         if (!messageId) return;
-        cancelRedaction(messageId);
 
         const delta = asString(data.delta) ?? "";
         setMessages((prev) =>
@@ -178,7 +164,9 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
             msg.id === messageId
               ? {
                   ...msg,
-                  recipient: asString(data.recipient) ?? msg.recipient,
+                  recipients: (
+                    asString(data.recipient) ? [asString(data.recipient)!] : msg.recipients
+                  ),
                   content: msg.content + delta,
                 }
               : msg
@@ -187,14 +175,15 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
       } else if (data.type === "agent_response_complete") {
         const messageId = asString(data.message_id);
         if (!messageId) return;
-        cancelRedaction(messageId);
 
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === messageId
               ? {
                   ...msg,
-                  recipient: asString(data.recipient) ?? msg.recipient,
+                  recipients: (
+                    asString(data.recipient) ? [asString(data.recipient)!] : msg.recipients
+                  ),
                   content: asString(data.content) ?? msg.content,
                 }
               : msg
@@ -223,12 +212,9 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
 
     return () => {
       active = false;
-      cancelAllRedactions();
       ws.close();
     };
   }, [chatroomId]);
-
-  useEffect(() => () => cancelAllRedactions(), []);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -255,8 +241,6 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
     setMessages((prev) => [...prev, tempMessage]);
 
     const targets = content.match(/@(\w+)/g)?.map((t) => t.slice(1)) || [];
-    console.log(targets)
-    console.log(content.match(/@(\w+)/g))
 
     try {
       const response = await fetch(`http://localhost:8000/api/chatrooms/${chatroomId}/messages`, {
@@ -266,7 +250,7 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
           sender: "ruben",
           role: "user",
           content: content,
-          target_agent_ids: targets.length > 0 ? targets : null
+          recipients: targets.length > 0 ? targets : null
         })
       });
       if (response.ok) {

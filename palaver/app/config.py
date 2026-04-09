@@ -15,6 +15,7 @@ from pydantic_settings import (
 )
 
 from palaver.app.constants import CONFIG_FILE
+from palaver.app.enums import RoutingType
 
 
 class ProviderConfig(BaseModel):
@@ -73,6 +74,13 @@ DEFAULT_AGENTS = [
         description="AI Agent using a local llama.cpp model."
     ),
 ]
+
+
+class AgentLoopConfig(BaseModel):
+    max_subagent_calls: int | None = 3
+    max_message_history: int = 20
+    agent_routing: RoutingType = RoutingType.AUTONOMOUS
+
 
 
 class TomlFileSettingsSource(PydanticBaseSettingsSource):

@@ -4,9 +4,9 @@ import palaver.app.services.chatroom_service as chat_service
 
 from palaver.app.dataclasses.agent import AddAgentRequest
 from palaver.app.dataclasses.chatroom import Chatroom, ChatroomCreate, ChatroomUpdate
-from palaver.app.dataclasses.events import ChatMessageEvent
-from palaver.app.dataclasses.message import ChatMessage, Message
-from palaver.app.connection_manager import manager
+from palaver.app.events.ui import ChatMessageEvent
+from palaver.app.dataclasses.message import ChatMessage, IncomingMessage
+from palaver.app.websocket_manager import get_ws_manager
 
 
 router = APIRouter(prefix="/api/chatrooms", tags=["chatrooms"])
@@ -42,7 +42,7 @@ async def update_chatroom_settings(chatroom_id: str, request: ChatroomUpdate):
 @router.get("/{chatroom_id}/agents", response_model=list[str])
 async def list_chatroom_agents(chatroom_id: str):
     """List agents in a chatroom"""
-    return chat_service.get_chatroom_agents(chatroom_id)
+    return chat_service.get_chatroom_agent_ids(chatroom_id)
 
 
 @router.post("/{chatroom_id}/agents", response_model=dict)
@@ -75,7 +75,7 @@ async def list_chatroom_messages(chatroom_id: str, limit: int = None):
 
 
 @router.post("/{chatroom_id}/messages", response_model=ChatMessage)
-async def send_message(chatroom_id: str, message: Message, background_tasks: BackgroundTasks):
+async def send_message(chatroom_id: str, message: IncomingMessage, background_tasks: BackgroundTasks):
     """Send a message to a chatroom. If it targets agents, stream their responses in the background."""
     chatroom = chat_service.get_chatroom(chatroom_id)
     chat_history = chat_service.get_chatroom_messages(chatroom_id, limit=chatroom.max_message_history)
@@ -83,13 +83,13 @@ async def send_message(chatroom_id: str, message: Message, background_tasks: Bac
         chatroom_id=chatroom_id,
         message=message
     )
-    
-    await manager.broadcast(
+    ws_manager = get_ws_manager()
+    await ws_manager.broadcast(
         ChatMessageEvent.model_validate(stored_message.model_dump()).model_dump_json(),
         chatroom_id
     )
     
-    for agent_id in stored_message.target_agent_ids or []:
+    for agent_id in stored_message.recipients or []:
         background_tasks.add_task(
             chat_service.run_agent_loop,
             chatroom_id=chatroom_id,
