@@ -244,41 +244,6 @@ class AutonomousRouterBridge(BaseEventBridge):
                 ),
             )
 
-    # async def _handle_final_result(self, ctx: RunContext[RunDeps], event: FinalResultEvent):
-    #     if not self.tool_call_tracker.has_awaiting:
-    #         self.terminate_run = True
-    #         self.final_output = "\n\n".join([state.content for state in self.tool_call_tracker.states])
-
-    # async def _handle_tool_result_event(
-    #     self, ctx: RunContext[RunDeps], event: FunctionToolResultEvent
-    # ):
-    #     result = event.result
-    #     if result.tool_name != "message_agent":
-    #         return
-        
-    #     state = self.tool_call_tracker.pop(result.tool_call_id)
-    #     if state is None:
-    #         return
-        
-    #     if result.part_kind == "retry-prompt":
-    #         await self._emit(
-    #             RedactAgentResponseEvent(
-    #                 agent_id=self.agent_id,
-    #                 message_id=state.message_id,
-    #             ),
-    #         )
-    #     else:
-    #         await self._emit(
-    #             AgentResponseCompleteEvent(
-    #                 agent_id=self.agent_id,
-    #                 message_id=state.message_id,
-    #                 content=state.content,
-    #                 recipient=state.recipient,
-    #             ),
-    #         )
-    #         if not state.consume_reply:
-    #             self.final_output = result
-
     def build_hooks(self) -> Hooks[RunDeps]:
         hooks = super().build_hooks()
 
@@ -300,63 +265,3 @@ class AutonomousRouterBridge(BaseEventBridge):
                 raise ModelRetry(state.error)
             return args
         return hooks
-        
-        # @hooks.on.node_run_error
-        # async def _gracefully_terminate(
-        #     ctx: RunContext[RunDeps],
-        #     /,
-        #     *,
-        #     node: AgentNode,
-        #     error: Exception
-        # ) -> End:
-        #     logger.debug(f"Handling error {error}")
-        #     if isinstance(error, TerminateRun):
-        #         return End(FinalResult(error.output))
-        #     return node
-        # return hooks
-
-        # @hooks.on.after_tool_execute(tools=["message_agent"])
-        # async def _after_tool_execute(
-        #     ctx: RunContext[RunDeps],
-        #     /,
-        #     *,
-        #     call: ToolCallPart,
-        #     tool_def: ToolDefinition,
-        #     args: ValidatedToolArgs,
-        #     result,
-        # ):
-        #     state = self._tracker.get(call.tool_call_id)
-        #     if state is not None:
-        #         await self._emit(
-        #             ctx,
-        #             AgentResponseCompleteEvent(
-        #                 agent_id=self.agent_id,
-        #                 message_id=state.message_id,
-        #                 content=state.content,
-        #                 recipient=state.recipient,
-        #                 store_message=True,
-        #             ),
-        #         )
-        #     return result
-
-        # @hooks.on.tool_execute_error(tools=["message_agent"])
-        # async def _tool_execute_error(
-        #     ctx: RunContext[RunDeps],
-        #     *,
-        #     call: ToolCallPart,
-        #     error: Exception,
-        #     **_,
-        # ):
-        #     state = self._tracker.get(call.tool_call_id)
-        #     if state is not None:
-        #         await self._emit(
-        #             ctx,
-        #             RedactAgentResponseEvent(
-        #                 agent_id=self.agent_id,
-        #                 message_id=state.message_id,
-        #             ),
-        #         )
-        #     raise error
-
-        # return hooks
-

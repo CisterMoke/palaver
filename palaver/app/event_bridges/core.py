@@ -40,7 +40,7 @@ class CoreEventBridge(BaseEventBridge):
             return result
         
         @hooks.on.after_run
-        async def _close_stream(ctx: RunContext[RunDeps], /, *, result: AgentRunResult) -> AgentRunResult:
+        async def _finish_run(ctx: RunContext[RunDeps], /, *, result: AgentRunResult) -> AgentRunResult:
             logger.debug(
                 f"Finished Agent Run {ctx.deps.run_id}, awaited_by={ctx.deps.awaited_by}."
             )

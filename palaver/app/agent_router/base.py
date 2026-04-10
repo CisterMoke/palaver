@@ -9,10 +9,21 @@ from palaver.app.dataclasses.run_deps import RunDeps
 
 class RouterPolicy(abc.ABC):
 
-    def __init__(self, agent_id: str, other_agent_ids: list[str], stream_session: StreamSession):
-        self.agent_id = agent_id
-        self.other_agent_ids = other_agent_ids
+    def __init__(
+            self,
+            active_agent_id: str,
+            available_agent_ids: list[str],
+            parent_agent_ids: tuple[str, ...],
+            stream_session: StreamSession
+        ):
+        self.active_agent_id = active_agent_id
+        self.available_agent_ids = available_agent_ids
+        self.parent_agent_ids = parent_agent_ids
         self.stream_session = stream_session
+
+    @abc.abstractmethod
+    def allowed_agent_ids(self) -> list[str]:
+        """Return a list of allowed agent ids that can be messaged."""
 
     @abc.abstractmethod
     def build_tools(self) -> list[Callable]:

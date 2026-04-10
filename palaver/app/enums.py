@@ -10,4 +10,4 @@ class RoleEnum(StrEnum):
 
 class RoutingType(StrEnum):
     AUTONOMOUS = "autonomous"
-    RANDOM = "random"
+    ROUND_ROBIN = "round_robin"

@@ -36,6 +36,6 @@ class ChatroomEventHandler(BaseEventHandler):
             role=RoleEnum.ASSISTANT,
             content=event.content,
             timestamp=timestamp,
-            recipients=[event.recipient],
+            recipients=None if event.recipient is None else [event.recipient],
         )
         db.save_message(self.chatroom_id, reply_message)

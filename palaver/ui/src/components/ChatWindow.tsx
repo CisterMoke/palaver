@@ -247,7 +247,7 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sender: "ruben",
+          sender: "USER",
           role: "user",
           content: content,
           recipients: targets.length > 0 ? targets : null

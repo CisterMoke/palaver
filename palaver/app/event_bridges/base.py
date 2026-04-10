@@ -24,28 +24,5 @@ class BaseEventBridge(abc.ABC):
     @abc.abstractmethod
     def build_hooks(self) -> Hooks[RunDeps]:
         hooks = Hooks[RunDeps]()
-
-        # @hooks.on.node_run_error
-        # async def _handle_error(
-        #     ctx: RunContext[RunDeps],
-        #     /,
-        #     *,
-        #     node: AgentNode,
-        #     error: Exception
-        # ) -> End:
-        #     async with self.stream_session.get_stream() as stream:
-        #         await stream.send(
-        #             AgentResponseErrorEvent(
-        #                 agent_id=self.agent_id,
-        #                 error=str(error),
-        #             )
-        #         )
-        #         return End(FinalResult(str(error)))
-
-        # @hooks.on.after_run
-        # async def _close_stream(ctx: RunContext[RunDeps], /, *, result: AgentRunResult) -> AgentRunResult:
-        #     """Ensures self.send_stream is closed at the end of the run."""
-        #     async with self.stream_session.get_stream():
-        #         return result
         return hooks
 

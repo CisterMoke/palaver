@@ -10,7 +10,7 @@ from palaver.app.agent_router.base import RouterPolicy
 from palaver.app.dataclasses.run_deps import RunDeps
 from palaver.app.dataclasses.message import Message, ChatMessage
 from palaver.app.enums import RoleEnum
-from palaver.app.event_bridges.routing import AutonomousRouterBridge, normalize_recipient
+from palaver.app.event_bridges.routing.autonomous import AutonomousRouterBridge, normalize_recipient
 from palaver.app.events.agent import AwaitAgentEvent, SendAgentEvent
 
 
@@ -21,11 +21,21 @@ Messaging other agents must be done via the provided "message_agent" tool.
 You are only allowed to message the following agents:
 [[other_agents]]
 """
-    def __init__(self, agent_id: str, other_agent_ids: list[str], stream_session: StreamSession):
-        super().__init__(agent_id, other_agent_ids, stream_session)
+    def __init__(
+            self,
+            active_agent_id: str,
+            available_agent_ids: list[str],
+            parent_agent_ids: tuple[str, ...],
+            stream_session: StreamSession
+        ):
+        super().__init__(active_agent_id, available_agent_ids, parent_agent_ids, stream_session)
+
+    def allowed_agent_ids(self):
+        exclude_agents = self.parent_agent_ids + (self.active_agent_id,)
+        return [aid for aid in self.available_agent_ids if aid not in exclude_agents]
 
     def build_tools(self) -> list[Callable]:
-        if not self.other_agent_ids:
+        if not self.allowed_agent_ids():
             return []
         
         async def message_agent(
@@ -81,9 +91,9 @@ You are only allowed to message the following agents:
 
     def build_capabilities(self, exclude_tools: bool = False) -> list[AbstractCapability[RunDeps]]:
         bridge = AutonomousRouterBridge(
-            agent_id=self.agent_id,
+            agent_id=self.active_agent_id,
             stream_session=self.stream_session,
-            other_agent_ids=self.other_agent_ids,
+            other_agent_ids=self.allowed_agent_ids(),
         )
         hooks = bridge.build_hooks()
 
@@ -94,7 +104,7 @@ You are only allowed to message the following agents:
         return [hooks, toolset]
 
     def edit_system_prompt(self, prompt: str) -> str:
-        other_agent_list = "\n".join(self.other_agent_ids)
+        other_agent_list = "\n".join(self.allowed_agent_ids())
         prompt_appendix = self.prompt_appendix.replace("[[other_agents]]", other_agent_list)
         prompt = f"{prompt.strip()}\n{prompt_appendix}"
         return prompt

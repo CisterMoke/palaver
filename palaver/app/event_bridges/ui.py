@@ -25,6 +25,13 @@ class UIEventBridge(BaseEventBridge):
 
         self._text_message_id: str | None = None
 
+    @classmethod
+    def _resolve_recipient(cls, run_deps: RunDeps) -> str:
+        msg_recipients = run_deps.user_message.recipients
+        if not msg_recipients:
+            return "USER"
+        return msg_recipients[0]
+
     async def handle_event(self, ctx: RunContext[RunDeps], event: AgentStreamEvent) -> AgentStreamEvent:
         if isinstance(event, PartStartEvent):
             await self._handle_part_start(ctx, event)
@@ -38,12 +45,10 @@ class UIEventBridge(BaseEventBridge):
         part = event.part
         if isinstance(part, TextPart):
             self._text_message_id = str(uuid.uuid4())
-            recipient = ctx.deps.sender
             await self._emit(
                 AgentResponseStartEvent(
                     agent_id=self.agent_id,
                     message_id=self._text_message_id,
-                    recipient=recipient,
                 ),
             )
             if part.content:
@@ -52,7 +57,6 @@ class UIEventBridge(BaseEventBridge):
                         agent_id=self.agent_id,
                         message_id=self._text_message_id,
                         delta=part.content,
-                        recipient=recipient,
                     ),
                 )
 
@@ -66,7 +70,6 @@ class UIEventBridge(BaseEventBridge):
                     agent_id=self.agent_id,
                     message_id=self._text_message_id,
                     delta=delta.content_delta,
-                    recipient=ctx.deps.sender,
                 ),
             )
 
@@ -80,7 +83,6 @@ class UIEventBridge(BaseEventBridge):
                     agent_id=self.agent_id,
                     message_id=self._text_message_id,
                     content=part.content,
-                    recipient=ctx.deps.sender,
                 ),
             )
             self._text_message_id = None

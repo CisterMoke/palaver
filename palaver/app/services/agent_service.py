@@ -93,8 +93,8 @@ class AgentManager:
         agent = self.get_agent(agent_id)
         other_agents: list[Agent] = []
         for aid in other_agent_ids:
-            if (agent := self.get_agent(aid)) is not None:
-                other_agents.append(agent)
+            if (other_agent := self.get_agent(aid)) is not None:
+                other_agents.append(other_agent)
 
         other_agent_descriptions = "\n".join(
             [f"- AGENT ({agent.name}): {agent.description}" for agent in other_agents]
@@ -164,7 +164,7 @@ class AgentManager:
             agent.id, system_prompt, chat_history + [message]
         )
         try:
-            result = await agent._inner.run(
+            result = await agent.inner.run(
                 user_prompt=message_history[-1].parts[0].content,
                 message_history=message_history[:-1],
             )
@@ -189,7 +189,7 @@ class AgentManager:
             agent.id, system_prompt, chat_history + [message]
         )
 
-        async with agent._inner.run_stream(
+        async with agent.inner.run_stream(
             user_prompt=message_history[-1].parts[0].content,
             message_history=message_history[:-1],
             deps=run_deps,
@@ -213,7 +213,7 @@ class AgentManager:
             agent.id, system_prompt, chat_history + [message]
         )
 
-        stream = agent._inner.run_stream(
+        stream = agent.inner.run_stream(
             user_prompt=message_history[-1].parts[0].content,
             message_history=message_history[:-1],
             deps=run_deps,
@@ -256,7 +256,7 @@ class AgentManager:
             agent.id, system_prompt, chat_history + [message]
         )
 
-        stream = agent._inner.run_stream_events(
+        stream = agent.inner.run_stream_events(
             user_prompt=message_history[-1].parts[0].content,
             message_history=message_history[:-1],
             deps=run_deps,

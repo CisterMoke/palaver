@@ -61,19 +61,17 @@ class AgentLoop:
             raise ValueError(f"Agent '{agent_id}' not found")
         
         agent_chain = tuple() if agent_chain is None else agent_chain
-        exclude_agents = agent_chain + (agent_id,)
-        other_agent_ids = [
-            aid for aid in self.agent_manager.agents if aid not in exclude_agents
-        ]
+        
         router_policy = get_router_policy(
             router_type=self.config.agent_routing,
-            agent_id=agent_id,
-            other_agent_ids=other_agent_ids,
+            active_agent_id=agent_id,
+            available_agent_ids=[aid for aid in self.agent_manager.agents],
+            parent_agent_ids=agent_chain,
             stream_session=self.send_stream_session,
         )
         system_prompt = self.agent_manager.create_system_prompt(
             agent_id,
-            other_agent_ids,
+            router_policy.allowed_agent_ids(),
         )
         capabilities = self._init_hooks(agent_id)
         capabilities += router_policy.build_capabilities(exclude_tools=self.call_counter.calls_at_limit)

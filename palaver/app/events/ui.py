@@ -27,21 +27,21 @@ class BaseAgentResponseEvent(UIEvent):
 class AgentResponseStartEvent(BaseAgentResponseEvent):
     """Event for when an agent starts responding"""
     type: str = "agent_response_start"
-    recipient: str
+    recipient: str | None = None
 
 
 class AgentResponseChunkEvent(BaseAgentResponseEvent):
     """Event for streaming chunks of agent response"""
     type: str = "agent_response_chunk"
     delta: str
-    recipient: str
+    recipient: str | None = None
 
 
 class AgentResponseCompleteEvent(BaseAgentResponseEvent):
     """Event for when an agent completes its response"""
     type: str = "agent_response_complete"
     content: str
-    recipient: str
+    recipient: str | None = None
 
 
 class AgentResponseErrorEvent(UIEvent):

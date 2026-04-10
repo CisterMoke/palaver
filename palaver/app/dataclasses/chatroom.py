@@ -20,7 +20,7 @@ class ChatroomBase(BaseModel):
     limit_subagent_calls: bool = True
     max_subagent_calls: int = 3
     max_message_history: int = 20
-    routing_type: RoutingType = RoutingType.AUTONOMOUS
+    routing_type: RoutingType = RoutingType.ROUND_ROBIN
 
 
 class ChatroomCreate(ChatroomBase):

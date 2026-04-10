@@ -1382,7 +1382,7 @@ wheels = [
 
 [[package]]
 name = "palaver"
-version = "0.0.1"
+version = "0.0.2"
 source = { editable = "." }
 dependencies = [
     { name = "fasta2a" },
