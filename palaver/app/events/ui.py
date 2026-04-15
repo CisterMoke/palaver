@@ -1,9 +1,10 @@
 from pydantic import BaseModel
 
 from palaver.app.dataclasses.message import ChatMessage
+from palaver.app.events.base import Event
 
 
-class UIEvent(BaseModel):
+class UIEvent(BaseModel, Event):
     type: str
 
 

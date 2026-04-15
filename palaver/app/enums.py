@@ -12,3 +12,4 @@ class RoutingType(StrEnum):
     AUTONOMOUS = "autonomous"
     ROUND_ROBIN = "round_robin"
     SINGLE = "single"
+    INCOGNITO = "incognito"

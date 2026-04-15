@@ -1,5 +1,5 @@
-from palaver.app.events.agent import AgentFinishedEvent, SendAgentEvent, AwaitAgentEvent
-from palaver.app.events.ui import UIEvent
+from palaver.app.events.base import Event
 
-
-Event = SendAgentEvent | AwaitAgentEvent | AgentFinishedEvent | UIEvent
+__all__ = [
+    "Event",
+]

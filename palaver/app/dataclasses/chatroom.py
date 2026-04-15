@@ -1,18 +1,7 @@
-import datetime as dt
-import uuid
-
 from pydantic import BaseModel, Field
 
-
+from palaver.app.data_utils import create_timestamp, create_uuid
 from palaver.app.enums import RoutingType
-
-
-def _create_uuid() -> str:
-    return str(uuid.uuid4())
-
-
-def _create_timestamp() -> str:
-    return dt.datetime.now().isoformat()
 
 
 class ChatroomBase(BaseModel):
@@ -35,6 +24,6 @@ class ChatroomUpdate(ChatroomBase):
 
 
 class Chatroom(ChatroomBase):
-    chatroom_id: str = Field(alias="id", default_factory=_create_uuid)
+    chatroom_id: str = Field(alias="id", default_factory=create_uuid)
     agents: list[str] = []
-    created_at: str = Field(default_factory=_create_timestamp)
+    created_at: str = Field(default_factory=create_timestamp)

@@ -1,5 +1,4 @@
 from collections.abc import AsyncGenerator
-from datetime import datetime
 from functools import lru_cache
 from loguru import logger
 from typing import Any, Literal
@@ -21,6 +20,7 @@ from palaver.app.dataclasses.agent import (
 )
 from palaver.app.dataclasses.llm import ChatroomMessage
 from palaver.app.dataclasses.message import Message
+from palaver.app.data_utils import create_timestamp
 from palaver.app.enums import RoleEnum
 from palaver.app.models.agent import Agent, ProviderModels
 from palaver.app.prompts import BASE_PROMPT
@@ -115,17 +115,10 @@ class AgentManager:
         return ModelRequest.user_text_prompt(message.model_dump_json())
 
     def _inject_system_prompt(
-        self, prompt: str, messages: list[Message]
+        self, prompt: str, messages: list[ModelMessage]
     ) -> list[ModelMessage]:
-        first = messages[0]
         system_part = SystemPromptPart(content=prompt)
-        if (
-            isinstance(first, ModelRequest)
-            and first.parts[0].part_kind != "system-prompt"
-        ):
-            first.parts = [system_part] + first.parts
-        else:
-            messages = [ModelRequest(parts=[system_part])] + messages
+        return [ModelRequest(parts=[system_part])] + messages
 
     def _construct_messages(
         self, agent_id: str, system_prompt: str, messages: list[Message]
@@ -150,7 +143,7 @@ class AgentManager:
                     model_messages.append(
                         ModelResponse(parts=[TextPart(content=msg.content)])
                     )
-        self._inject_system_prompt(system_prompt, model_messages)
+        model_messages = self._inject_system_prompt(system_prompt, model_messages)
         return model_messages
 
     async def _generate_llm_response(
@@ -270,7 +263,7 @@ class AgentManager:
         response = AgentResponse(
             agent_id=agent_id,
             response=response_text,
-            timestamp=datetime.now().isoformat(),
+            timestamp=create_timestamp(),
         )
         if not success:
             response.response = ""

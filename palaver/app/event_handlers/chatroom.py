@@ -1,9 +1,7 @@
-
-import datetime
-
 from loguru import logger
 
 from palaver.app.database import db
+from palaver.app.data_utils import create_timestamp
 from palaver.app.enums import RoleEnum
 from palaver.app.event_handlers.base import BaseEventHandler
 from palaver.app.events.ui import AgentResponseCompleteEvent, UIEvent
@@ -28,7 +26,7 @@ class ChatroomEventHandler(BaseEventHandler):
             self._store_agent_response(event)
 
     def _store_agent_response(self, event: AgentResponseCompleteEvent) -> None:
-        timestamp = datetime.datetime.now().isoformat()
+        timestamp = create_timestamp()
         reply_message = ChatMessage(
             id=event.message_id,
             chatroom_id=self.chatroom_id,

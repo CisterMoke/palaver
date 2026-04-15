@@ -10,6 +10,12 @@ class ChatroomMessage(BaseModel):
     role: Literal["agent", "user"] = Field(..., description="The role of the sender. Can be either 'agent' or 'user'.")
     content: str = Field(..., description="The content of the message.")
 
+class IncognitoMessage(BaseModel):
+    """
+    An incognito message left in the chatroom.
+    """
+    sender: str = Field(..., description="The sender of the message.")
+    content: str = Field(..., description="The content of the message.")
 
 class AgentResponse(BaseModel):
     """

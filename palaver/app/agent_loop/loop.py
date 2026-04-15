@@ -16,6 +16,7 @@ from palaver.app.event_handlers.base import BaseEventHandler
 from palaver.app.event_handlers.core import CoreEventHandler
 from palaver.app.events import Event
 from palaver.app.events.agent import SendAgentEvent, AgentFinishedEvent, AwaitAgentEvent
+from palaver.app.events.system import RemoveAgentEvent
 from palaver.app.events.ui import AgentResponseErrorEvent
 from palaver.app.models.agent import Agent
 from palaver.app.services.agent_service import AgentManager
@@ -67,12 +68,10 @@ class AgentLoop:
             active_agent_id=agent_id,
             available_agent_ids=[aid for aid in self.agent_manager.agents],
             parent_agent_ids=agent_chain,
+            agent_infos={info.id: info for info in self.agent_manager.list_agents()},
             stream_session=self.send_stream_session,
         )
-        system_prompt = self.agent_manager.create_system_prompt(
-            agent_id,
-            router_policy.allowed_agent_ids(),
-        )
+        system_prompt = router_policy.create_system_prompt()
         capabilities = self._init_hooks(agent_id)
         capabilities += router_policy.build_capabilities(exclude_tools=self.call_counter.calls_at_limit)
 
@@ -120,7 +119,7 @@ class AgentLoop:
                 await stream.send(
                     AgentResponseErrorEvent(
                         agent_id=event.recipient,
-                        error=str(exc),
+                        error=f"{type(exc).__name__}: {str(exc)}",
                     )
                 )
                 await stream.send(
@@ -159,6 +158,8 @@ class AgentLoop:
                         tg.start_soon(self.handle_send_agent_event, event)
                     elif isinstance(event, AgentFinishedEvent):
                         logger.debug(f"Main loop received AgentFinishedEvent '{event.run_id}'")
+                    elif isinstance(event, RemoveAgentEvent):
+                        self.agent_manager.delete_agent(event.agent_id)
                     for handler in self.event_handlers:
                         tg.start_soon(handler.handle_event, event)
 

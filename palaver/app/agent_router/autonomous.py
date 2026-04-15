@@ -2,10 +2,9 @@ import uuid
 
 from collections.abc import Callable
 from pydantic_ai import RunContext
-from pydantic_ai.capabilities import AbstractCapability, Toolset
+from pydantic_ai.capabilities import AbstractCapability, Hooks, Toolset
 from pydantic_ai.toolsets import FunctionToolset
 
-from palaver.app.agent_loop.stream_session import StreamSession
 from palaver.app.agent_router.base import RouterPolicy
 from palaver.app.dataclasses.run_deps import RunDeps
 from palaver.app.dataclasses.message import Message, ChatMessage
@@ -21,15 +20,6 @@ Messaging other agents must be done via the provided "message_agent" tool.
 You are only allowed to message the following agents:
 [[other_agents]]
 """
-    def __init__(
-            self,
-            active_agent_id: str,
-            available_agent_ids: list[str],
-            parent_agent_ids: tuple[str, ...],
-            stream_session: StreamSession
-        ):
-        super().__init__(active_agent_id, available_agent_ids, parent_agent_ids, stream_session)
-
     def allowed_agent_ids(self):
         exclude_agents = self.parent_agent_ids + (self.active_agent_id,)
         return [aid for aid in self.available_agent_ids if aid not in exclude_agents]
@@ -89,21 +79,26 @@ You are only allowed to message the following agents:
 
         return [message_agent]
 
-    def build_capabilities(self, exclude_tools: bool = False) -> list[AbstractCapability[RunDeps]]:
+    def build_hooks(self) -> Hooks[RunDeps]:
         bridge = AutonomousRouterBridge(
             agent_id=self.active_agent_id,
             stream_session=self.stream_session,
             other_agent_ids=self.allowed_agent_ids(),
         )
         hooks = bridge.build_hooks()
+        return hooks
+
+    def build_capabilities(self, exclude_tools: bool = False) -> list[AbstractCapability[RunDeps]]:
+        hooks = self.build_hooks()
 
         if exclude_tools:
             return [hooks]
         
         toolset = Toolset(FunctionToolset(self.build_tools()))
         return [hooks, toolset]
-
-    def edit_system_prompt(self, prompt: str) -> str:
+    
+    def create_system_prompt(self):
+        prompt = super().create_system_prompt()
         other_agent_list = "\n".join(self.allowed_agent_ids())
         prompt_appendix = self.prompt_appendix.replace("[[other_agents]]", other_agent_list)
         prompt = f"{prompt.strip()}\n{prompt_appendix}"

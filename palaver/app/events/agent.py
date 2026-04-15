@@ -2,9 +2,10 @@ import asyncio
 
 
 from palaver.app.dataclasses.message import ChatMessage, Message
+from palaver.app.events.base import Event
 
 
-class SendAgentEvent:
+class SendAgentEvent(Event):
     def __init__(
             self,
             recipient: str,
@@ -22,7 +23,7 @@ class SendAgentEvent:
         self.awaited_by = awaited_by
 
 
-class AwaitAgentEvent:
+class AwaitAgentEvent(Event):
     def __init__(self, run_id: str):
         self.run_id = run_id
         self._done = asyncio.Event()
@@ -37,7 +38,7 @@ class AwaitAgentEvent:
         self._result = value
 
 
-class AgentFinishedEvent:
+class AgentFinishedEvent(Event):
     def __init__(self, run_id: str, awaited_by: str, result: str):
         self.run_id = run_id
         self.awaited_by = awaited_by

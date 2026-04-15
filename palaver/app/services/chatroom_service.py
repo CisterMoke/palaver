@@ -1,7 +1,5 @@
-import re
 import uuid
 
-from datetime import datetime
 from loguru import logger
 
 import palaver.app.database.db as db
@@ -10,6 +8,7 @@ from palaver.app.agent_loop.loop import AgentLoop
 from palaver.app.config import AgentLoopConfig
 from palaver.app.dataclasses.chatroom import Chatroom, ChatroomCreate, ChatroomUpdate
 from palaver.app.dataclasses.message import ChatMessage, Message
+from palaver.app.data_utils import create_timestamp
 from palaver.app.event_bridges.ui import UIEventBridge
 from palaver.app.event_handlers.chatroom import ChatroomEventHandler
 from palaver.app.services.agent_service import get_agent_service
@@ -105,7 +104,7 @@ def store_chat_message(chatroom_id: str, chat_message: ChatMessage):
 def create_message(chatroom_id: str, message: Message) -> ChatMessage:
     """Create a new message in a chatroom"""
     message_id = str(uuid.uuid4())
-    timestamp = datetime.now().isoformat()
+    timestamp = create_timestamp()
 
     chat_message = ChatMessage(
         id=message_id,
@@ -130,16 +129,6 @@ def get_chatroom_messages(
         return db.load_messages(chatroom_id)
 
     return db.load_messages(chatroom_id)[-limit:]
-
-
-def extract_target_ids(chatroom_id, agent_id: str, text: str) -> list[str] | None:
-    target_ids = []
-    pattern = r"@(\w+)"
-    for match in re.finditer(pattern, text):
-        target_id = match.group(1)
-        if target_id != agent_id:
-            target_ids.append(match.group(1))
-    return filter_target_ids(chatroom_id, target_ids)
 
 
 async def run_agent_loop(
@@ -171,3 +160,10 @@ async def run_agent_loop(
         user_message=user_message,
         chat_history=chat_history,
     )
+
+    # TODO: Find better alternative
+    agents_to_remove = set(chatroom.agents).difference(loop.agent_manager.agents.keys())
+    for agent_id in agents_to_remove:
+        logger.debug(f"Removing '{agent_id}' from chatroom '{chatroom.name}'")
+        remove_agent_from_chatroom(chatroom_id, agent_id)
+    

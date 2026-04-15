@@ -89,7 +89,7 @@ async def send_message(chatroom_id: str, message: IncomingMessage, background_ta
         chatroom_id
     )
     
-    for agent_id in stored_message.recipients or []:
+    for agent_id in stored_message.recipients or chatroom.agents[:1]:
         background_tasks.add_task(
             chat_service.run_agent_loop,
             chatroom_id=chatroom_id,
