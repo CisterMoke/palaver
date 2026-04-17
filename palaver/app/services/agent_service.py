@@ -368,11 +368,8 @@ class AgentService:
 
         self._save_llm_config()
 
-        # Update the agent itself
-        agent = self.get_agent(agent_id)
-        for key, value in config_update.items():
-            if hasattr(agent, key):
-                setattr(agent, key, value)
+        # Re-initialize the agent
+        self.create_agent(agent_config)
 
         return True
 

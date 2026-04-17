@@ -30,7 +30,7 @@ def get_chatroom(chatroom_id: str) -> Chatroom:
     if not config_file.exists():
         print(config_file)
         raise ValueError(f"No chatroom found with id '{chatroom_id}'.")
-    
+
     with open(config_file, "rb") as f:
         content = f.read()
         chatroom = Chatroom.model_validate_json(content, by_alias=True)
@@ -51,7 +51,7 @@ def load_messages(chatroom_id: str) -> list[ChatMessage]:
     messages_file = CHATROOMS_DIR / chatroom_id / "messages.jsonl"
     if not messages_file.exists():
         return chat_messages
-    
+
     with open(messages_file, "rb") as f:
         for line in f:
             chat_message = ChatMessage.model_validate_json(line.rstrip(b"\n"))
@@ -65,12 +65,24 @@ def save_message(chatroom_id: str, chat_message: ChatMessage):
 
     message_json = chat_message.model_dump_json()
     messages_file = _ensure_dir(chatroom_id) / "messages.jsonl"
-    
+
     if not messages_file.exists():
         with open(messages_file, "w") as f:
             f.write(f"{message_json}\n")
         return
-    
+
     with open(messages_file, "a") as f:
         f.write(f"{message_json}\n")
     return
+
+
+def replace_messages(chatroom_id: str, chat_messages: list[ChatMessage]):
+    messages_file = _ensure_dir(chatroom_id) / "messages.jsonl"
+    if not chat_messages:
+        if messages_file.exists():
+            messages_file.unlink()
+        return
+
+    with open(messages_file, "w") as f:
+        for chat_message in chat_messages:
+            f.write(f"{chat_message.model_dump_json()}\n")

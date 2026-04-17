@@ -9,6 +9,7 @@ from palaver.app.config import AgentLoopConfig
 from palaver.app.dataclasses.chatroom import Chatroom, ChatroomCreate, ChatroomUpdate
 from palaver.app.dataclasses.message import ChatMessage, Message
 from palaver.app.data_utils import create_timestamp
+from palaver.app.enums import RoleEnum
 from palaver.app.event_bridges.ui import UIEventBridge
 from palaver.app.event_handlers.chatroom import ChatroomEventHandler
 from palaver.app.services.agent_service import get_agent_service
@@ -131,27 +132,86 @@ def get_chatroom_messages(
     return db.load_messages(chatroom_id)[-limit:]
 
 
+def clear_chatroom_messages(chatroom_id: str) -> int:
+    existing_messages = db.load_messages(chatroom_id)
+    db.replace_messages(chatroom_id, [])
+    return len(existing_messages)
+
+
+def undo_last_user_message(chatroom_id: str) -> tuple[str | None, int]:
+    messages = db.load_messages(chatroom_id)
+
+    last_user_index: int | None = None
+    for index in range(len(messages) - 1, -1, -1):
+        if messages[index].role == RoleEnum.USER:
+            last_user_index = index
+            break
+
+    if last_user_index is None:
+        return None, 0
+
+    restore_input = messages[last_user_index].content
+    deleted_count = len(messages) - last_user_index
+    db.replace_messages(chatroom_id, messages[:last_user_index])
+    return restore_input, deleted_count
+
+
+def execute_slash_command(
+    chatroom_id: str, name: str, args: dict | None = None
+) -> dict:
+    _ = args
+    command_name = name.strip().lower()
+
+    if command_name == "clear":
+        deleted_count = clear_chatroom_messages(chatroom_id)
+        return {
+            "status": "ok",
+            "payload": {
+                "deleted_count": deleted_count,
+            },
+        }
+
+    if command_name == "undo":
+        restore_input, deleted_count = undo_last_user_message(chatroom_id)
+        if restore_input is None:
+            return {
+                "status": "error",
+                "error": "No user message available to undo.",
+            }
+        return {
+            "status": "ok",
+            "payload": {
+                "restore_input": restore_input,
+                "deleted_count": deleted_count,
+            },
+        }
+
+    return {
+        "status": "error",
+        "error": f"Unknown slash command '/{name}'.",
+    }
+
+
 async def run_agent_loop(
-        chatroom_id: str,
-        agent_id: str,
-        user_message: Message,
-        chat_history: list[ChatMessage],
-    ):
+    chatroom_id: str,
+    agent_id: str,
+    user_message: Message,
+    chat_history: list[ChatMessage],
+):
     agent_ids = get_chatroom_agent_ids(chatroom_id)
     agent_service = get_agent_service()
     agents = [agent_service.agent_manager.get_agent(aid) for aid in agent_ids]
 
     chatroom = get_chatroom(chatroom_id)
     config = AgentLoopConfig(
-        max_subagent_calls=chatroom.max_subagent_calls if chatroom.limit_subagent_calls else None,
+        max_subagent_calls=chatroom.max_subagent_calls
+        if chatroom.limit_subagent_calls
+        else None,
         max_message_history=chatroom.max_message_history,
         agent_routing=chatroom.routing_type,
     )
-    
-    loop = AgentLoop(
-        agents=agents,
-        config=config
-    )
+
+    loop = AgentLoop(agents=agents, config=config)
     loop.add_event_bridge(UIEventBridge)
     loop.add_event_handler(ChatroomEventHandler(chatroom_id))
 
@@ -166,4 +226,3 @@ async def run_agent_loop(
     for agent_id in agents_to_remove:
         logger.debug(f"Removing '{agent_id}' from chatroom '{chatroom.name}'")
         remove_agent_from_chatroom(chatroom_id, agent_id)
-    

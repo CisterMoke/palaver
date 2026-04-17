@@ -74,28 +74,28 @@ async def list_chatroom_messages(chatroom_id: str, limit: int = None):
     return chat_service.get_chatroom_messages(chatroom_id, limit)
 
 
-@router.post("/{chatroom_id}/messages", response_model=ChatMessage)
-async def send_message(chatroom_id: str, message: IncomingMessage, background_tasks: BackgroundTasks):
-    """Send a message to a chatroom. If it targets agents, stream their responses in the background."""
-    chatroom = chat_service.get_chatroom(chatroom_id)
-    chat_history = chat_service.get_chatroom_messages(chatroom_id, limit=chatroom.max_message_history)
-    stored_message = chat_service.create_message(
-        chatroom_id=chatroom_id,
-        message=message
-    )
-    ws_manager = get_ws_manager()
-    await ws_manager.broadcast(
-        ChatMessageEvent.model_validate(stored_message.model_dump()).model_dump_json(),
-        chatroom_id
-    )
+# @router.post("/{chatroom_id}/messages", response_model=ChatMessage)
+# async def send_message(chatroom_id: str, message: IncomingMessage, background_tasks: BackgroundTasks):
+#     """Send a message to a chatroom. If it targets agents, stream their responses in the background."""
+#     chatroom = chat_service.get_chatroom(chatroom_id)
+#     chat_history = chat_service.get_chatroom_messages(chatroom_id, limit=chatroom.max_message_history)
+#     stored_message = chat_service.create_message(
+#         chatroom_id=chatroom_id,
+#         message=message
+#     )
+#     ws_manager = get_ws_manager()
+#     await ws_manager.broadcast(
+#         ChatMessageEvent.model_validate(stored_message.model_dump()).model_dump_json(),
+#         chatroom_id
+#     )
     
-    for agent_id in stored_message.recipients or chatroom.agents[:1]:
-        background_tasks.add_task(
-            chat_service.run_agent_loop,
-            chatroom_id=chatroom_id,
-            agent_id=agent_id,
-            user_message=message,
-            chat_history=chat_history,
-        )
+#     for agent_id in stored_message.recipients or chatroom.agents[:1]:
+#         background_tasks.add_task(
+#             chat_service.run_agent_loop,
+#             chatroom_id=chatroom_id,
+#             agent_id=agent_id,
+#             user_message=message,
+#             chat_history=chat_history,
+#         )
             
-    return stored_message
+#     return stored_message

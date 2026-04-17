@@ -323,6 +323,28 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
           const messageId = asString(data.message_id);
           if (!messageId) return;
           startRedaction(messageId);
+        } else if (data.type === "command_result") {
+          const status = asString(data.status);
+          const name = asString(data.name);
+          const payload = (typeof data.payload === "object" && data.payload !== null)
+            ? data.payload as Record<string, unknown>
+            : null;
+
+          if (status === "ok") {
+            fetchChatroomMessages(chatroomId)
+              .then(setMessages)
+              .catch((error) => console.error("Failed to refresh messages after slash command", error));
+
+            if (name === "undo") {
+              const restoreValue = payload?.restore_input;
+              if (typeof restoreValue === "string") {
+                setText(restoreValue);
+              }
+            }
+            return;
+          }
+
+          console.error("Slash command failed:", asString(data.error) ?? "Unknown error");
         }
       };
 
@@ -358,6 +380,31 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
 
     const content = text.trim();
     setText("");
+
+    if (content.startsWith("/")) {
+      const [commandName, ...rawArgs] = content.slice(1).trim().split(/\s+/).filter(Boolean);
+      if (!commandName) return;
+
+      const commandPayload = JSON.stringify({
+        type: "slash_command",
+        data: {
+          name: commandName,
+          args: rawArgs.length > 0 ? { raw: rawArgs.join(" ") } : {},
+        },
+      });
+
+      try {
+        const ws = wsRef.current;
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+          throw new Error("WebSocket is not connected");
+        }
+        ws.send(commandPayload);
+      } catch (e) {
+        console.error("Failed to send slash command", e);
+        setText(content);
+      }
+      return;
+    }
     
     const targets = content.match(/@(\w+)/g)?.map((t) => t.slice(1)) || [];
 
