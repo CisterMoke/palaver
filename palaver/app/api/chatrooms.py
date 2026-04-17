@@ -6,7 +6,7 @@ from palaver.app.dataclasses.agent import AddAgentRequest
 from palaver.app.dataclasses.chatroom import Chatroom, ChatroomCreate, ChatroomUpdate
 from palaver.app.events.ui import ChatMessageEvent
 from palaver.app.dataclasses.message import ChatMessage, IncomingMessage
-from palaver.app.websocket_manager import get_ws_manager
+from palaver.app.websockets.manager import get_ws_manager
 
 
 router = APIRouter(prefix="/api/chatrooms", tags=["chatrooms"])

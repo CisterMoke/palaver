@@ -6,7 +6,7 @@ from palaver.app.enums import RoleEnum
 from palaver.app.event_handlers.base import BaseEventHandler
 from palaver.app.events.ui import AgentResponseCompleteEvent, UIEvent
 from palaver.app.dataclasses.message import ChatMessage
-from palaver.app.websocket_manager import get_ws_manager
+from palaver.app.websockets.manager import get_ws_manager
 
 
 class ChatroomEventHandler(BaseEventHandler):

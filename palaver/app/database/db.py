@@ -22,7 +22,7 @@ def _ensure_dir(chatroom_id: str) -> Path:
 def save_chatroom(chatroom: Chatroom):
     chatroom_dir = _ensure_dir(chatroom.chatroom_id)
     with open(chatroom_dir / "config.json", "w") as f:
-        f.write(chatroom.model_dump_json(by_alias=True))
+        f.write(chatroom.model_dump_json(by_alias=True, indent=2))
 
 
 def get_chatroom(chatroom_id: str) -> Chatroom:

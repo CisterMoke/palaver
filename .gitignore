@@ -5,3 +5,5 @@ data/
 __pycache__
 config.toml
 opencode.json
+*.md
+*.txt

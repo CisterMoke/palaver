@@ -8,7 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from palaver.app.api import chatrooms, agents, providers, keys
-from palaver.app.websocket_manager import get_ws_manager
+from palaver.app.websockets.handler import WebSocketHandler
+from palaver.app.websockets.manager import get_ws_manager
 from palaver.app.constants import UI_DIR
 from palaver.app.events.ui import UserLeftEvent
 
@@ -34,15 +35,12 @@ app.include_router(keys.router)
 @app.websocket("/ws/{chatroom_id}")
 async def websocket_endpoint(websocket: WebSocket, chatroom_id: str):
     ws_manager = get_ws_manager()
+    ws_handler = WebSocketHandler(ws_manager, chatroom_id)
     await ws_manager.connect(websocket, chatroom_id)
     try:
         while True:
-            data = await websocket.receive_text()
-            message = json.loads(data)
-            
-            if message["type"] == "agent_command":
-                # Handle agent-specific commands
-                await handle_agent_command(message, websocket, chatroom_id)
+            data = await websocket.receive_json()
+            await ws_handler.handle_data(data)
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket, chatroom_id)
         await ws_manager.broadcast(
@@ -51,26 +49,6 @@ async def websocket_endpoint(websocket: WebSocket, chatroom_id: str):
         )
 
 app.mount("/", StaticFiles(directory=UI_DIR / "dist", html=True), name="agent-chatroom")
-
-async def handle_agent_command(message: dict, websocket: WebSocket, chatroom_id: str):
-    """Handle commands related to AI agents"""
-    command = message.get("command")
-    
-    if command == "create_agent":
-        # This would now use the service layer
-        await websocket.send_text(json.dumps({
-            "type": "agent_command_response",
-            "command": "create_agent",
-            "message": "Agent creation should be done via REST API now"
-        }))
-    
-    elif command == "add_agent_to_chatroom":
-        # This would now use the service layer
-        await websocket.send_text(json.dumps({
-            "type": "agent_command_response",
-            "command": "add_agent_to_chatroom", 
-            "message": "Agent management should be done via REST API now"
-        }))
 
 def main():
     import os
