@@ -6,11 +6,11 @@ import ChatroomModal from "./ChatroomModal";
 import { getBotAvatarUrl } from "../utils/avatar";
 
 interface SidebarProps {
-  activeChatroomId: string | null;
-  onSelectChatroom: (id: string | null) => void;
+  activeChatroom: Chatroom | null;
+  onSelectChatroom: (id: Chatroom | null) => void;
 }
 
-export default function Sidebar({ activeChatroomId, onSelectChatroom }: SidebarProps) {
+export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarProps) {
   const [chatrooms, setChatrooms] = useState<Chatroom[]>([]);
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [showChatroomModal, setShowChatroomModal] = useState(false);
@@ -33,17 +33,17 @@ export default function Sidebar({ activeChatroomId, onSelectChatroom }: SidebarP
       ]);
       setChatrooms(rooms);
       setAgents(fetchedAgents);
-      if (rooms.length > 0 && !activeChatroomId) {
-        onSelectChatroom(rooms[0].id);
+      if (rooms.length > 0 && !activeChatroom) {
+        onSelectChatroom(rooms[0]);
       }
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleChatroomSaved = async (chatroomId: string) => {
+  const handleChatroomSaved = async (chatroom: Chatroom) => {
+    const chatroomId = chatroom.id;
     await loadData();
-    onSelectChatroom(chatroomId);
     window.dispatchEvent(new CustomEvent("chatroom-updated", { detail: { chatroomId } }));
     setEditingChatroom(null);
   };
@@ -136,9 +136,9 @@ export default function Sidebar({ activeChatroomId, onSelectChatroom }: SidebarP
                   {chatrooms.map((room) => (
                     <li
                       key={room.id}
-                      onClick={() => onSelectChatroom(room.id)}
+                      onClick={() => onSelectChatroom(room)}
                       className={`p-2 rounded cursor-pointer transition-colors ${
-                        activeChatroomId === room.id
+                        activeChatroom === room
                           ? "bg-blue-100 text-blue-800 font-medium"
                           : "hover:bg-gray-200"
                       }`}

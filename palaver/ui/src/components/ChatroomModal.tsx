@@ -8,7 +8,7 @@ interface CreateChatroomModalProps {
   agents: AgentInfo[];
   existingChatroom?: Chatroom | null;
   onClose: () => void;
-  onSuccess: (chatroomId: string) => void | Promise<void>;
+  onSuccess: (chatroom: Chatroom) => void | Promise<void>;
 }
 
 export default function ChatroomModal({
@@ -56,18 +56,17 @@ export default function ChatroomModal({
         max_message_history: maxMessageHistory,
       };
 
-      let roomId: string;
+      let room: Chatroom;
       if (existingChatroom) {
         await updateChatroom(existingChatroom.id, payload);
-        roomId = existingChatroom.id;
+        room = existingChatroom;
       } else {
-        const room = await createChatroom(payload);
-        roomId = room.id;
+        room = await createChatroom(payload);
       }
 
-      await setChatroomParticipants(roomId, selectedAgentIds);
+      await setChatroomParticipants(room.id, selectedAgentIds);
 
-      await onSuccess(roomId);
+      await onSuccess(room);
       onClose();
     } catch (err) {
       setError(

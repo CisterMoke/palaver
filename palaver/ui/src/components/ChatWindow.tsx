@@ -3,10 +3,10 @@ import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import ParticipantsModal from "./ParticipantsModal";
 import { fetchChatroomMessages, fetchChatroomParticipants, fetchAgents } from "../api";
-import type { SimpleMessage, AgentInfo } from "../api";
+import type { SimpleMessage, AgentInfo, Chatroom } from "../api";
 
 interface ChatWindowProps {
-  chatroomId: string;
+  chatroom: Chatroom;
 }
 
 type PendingMessage = {
@@ -31,7 +31,7 @@ const RECONNECT_MAX_DELAY_MS = 10_000;
 const asString = (value: unknown): string | undefined =>
   typeof value === "string" ? value : undefined;
 
-export default function ChatWindow({ chatroomId }: ChatWindowProps) {
+export default function ChatWindow({ chatroom }: ChatWindowProps) {
   const [messages, setMessages] = useState<SimpleMessage[]>([]);
   const [text, setText] = useState("");
   const [showParticipants, setShowParticipants] = useState(false);
@@ -48,6 +48,7 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
   const reconnectAttemptRef = useRef(0);
   const pendingMessagesRef = useRef<PendingMessage[]>([]);
   const agentActivityOrderRef = useRef(0);
+  const chatroomId = chatroom.id;
 
   const markMessagesAsError = (messageIds: string[]) => {
     if (messageIds.length === 0) return;
@@ -663,35 +664,27 @@ export default function ChatWindow({ chatroomId }: ChatWindowProps) {
       {/* Header */}
       <div className="px-4 py-1 border-b border-gray-200 bg-gray-50 flex justify-between items-center gap-4">
         <div className="min-w-0 justify-items-start">
-          <h3 className="font-semibold text-gray-700 leading-tight">Chatroom</h3>
-          {participantNames ? (
-            <p className="text-xs text-gray-400 truncate mt-0.5">
-              👥 {participantNames}
-            </p>
-          ) : (
-            <p className="text-xs text-gray-400 mt-0.5">No participants yet</p>
-          )}
+          <h3 className="font-semibold text-gray-700 leading-tight">
+            Chatroom: {chatroom.name}
+            <span className="text-xs"> [id={chatroom.id}, routing_type={chatroom.routing_type}]</span>
+          </h3>
+          <div className="flex gap-2">
+            {participantNames ? (
+              <span className="text-xs text-gray-400 truncate mt-0.5">
+                👥 {participantNames}
+              </span>
+            ) : (
+              <span className="text-xs text-gray-400 mt-0.5">No participants yet</span>
+            )}
+            {isAgentLoopRunning && (
+            <span className="text-xs text-blue-600 mt-0.5">Agents running...</span>
+            )}
+          </div>
         </div>
         <div className="shrink-0 flex flex-col items-end gap-1 text-black">
-          <button
-            onClick={() => setShowParticipants(true)}
-            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border-0 transition-colors"
-            title="Manage participants"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Participants
-          </button>
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
             <span className={`h-2 w-2 rounded-full ${connectionDotClass}`} />
             <span>{connectionLabel}</span>
-            {isAgentLoopRunning && (
-              <div className="flex items-center gap-1.5 text-xs text-blue-600">
-                <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
-                <span>Agents running...</span>
-              </div>
-            )}
           </div>
         </div>
       </div>
