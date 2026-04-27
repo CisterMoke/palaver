@@ -19,7 +19,7 @@ export default function MessageInput({ value, onChange, onSend }: MessageInputPr
         }}
       />
       <button
-        className="bg-blue-500 text-white px-4 rounded hover:bg-blue-600"
+        className="px-4 rounded text-black"
         onClick={onSend}
       >
         Send

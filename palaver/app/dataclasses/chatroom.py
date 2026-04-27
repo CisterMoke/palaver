@@ -18,8 +18,8 @@ class ChatroomCreate(ChatroomBase):
 
 class ChatroomUpdate(ChatroomBase):
     name: str | None = None
-    limit_agent_chains: bool | None = None
-    max_chain_depth: int | None = None
+    limit_subagent_calls: bool | None = None
+    max_subagent_calls: int | None = None
     max_message_history: int | None = None
 
 

@@ -2,9 +2,19 @@ from loguru import logger
 
 from palaver.app.database import db
 from palaver.app.data_utils import create_timestamp
-from palaver.app.enums import RoleEnum
+from palaver.app.enums import AgentLoopStatus, RoleEnum
 from palaver.app.event_handlers.base import BaseEventHandler
-from palaver.app.events.ui import AgentResponseCompleteEvent, UIEvent
+from palaver.app.events.agent import SendAgentEvent, AgentFinishedEvent
+from palaver.app.events.system import AgentLoopEvent, RemoveAgentEvent
+from palaver.app.events.ui import (
+    AgentResponseCompleteEvent,
+    UIEvent,
+    AgentLeftEvent,
+    AgentLoopStartEvent,
+    AgentLoopEndEvent,
+    AgentStartEvent,
+    AgentEndEvent
+)
 from palaver.app.dataclasses.message import ChatMessage
 from palaver.app.websockets.manager import get_ws_manager
 
@@ -24,6 +34,27 @@ class ChatroomEventHandler(BaseEventHandler):
 
         if isinstance(event, AgentResponseCompleteEvent):
             self._store_agent_response(event)
+
+        ui_event = None
+        if isinstance(event, AgentLoopEvent):
+            if event.status == AgentLoopStatus.STARTED:
+                ui_event = AgentLoopStartEvent()
+            elif event.status == AgentLoopStatus.ENDED:
+                ui_event = AgentLoopEndEvent()
+
+        if isinstance(event, RemoveAgentEvent):
+            ui_event = AgentLeftEvent(
+                message=f"Agent '{event.agent_id}' left the chatroom",
+                agent_id=event.agent_id,
+                )
+
+        if isinstance(event, SendAgentEvent):
+            ui_event = AgentStartEvent(agent_id=event.recipient)
+        if isinstance(event, AgentFinishedEvent):
+            ui_event = AgentEndEvent(agent_id=event.agent_id)
+        
+        if ui_event is not None:
+            await self.ws_manager.broadcast_model(ui_event, self.chatroom_id)
 
     def _store_agent_response(self, event: AgentResponseCompleteEvent) -> None:
         timestamp = create_timestamp()

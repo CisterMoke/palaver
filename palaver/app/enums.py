@@ -13,3 +13,8 @@ class RoutingType(StrEnum):
     ROUND_ROBIN = "round_robin"
     SINGLE = "single"
     INCOGNITO = "incognito"
+
+
+class AgentLoopStatus(StrEnum):
+    STARTED = "started"
+    ENDED = "ended"

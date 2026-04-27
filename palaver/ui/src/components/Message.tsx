@@ -11,7 +11,16 @@ interface MessageProps {
 
 export default function Message({ text, sender, recipient, role, status }: MessageProps) {
   const isUser = role === "user";
+  const isSystem = role === "system";
   const title = recipient ? `${sender} -> ${recipient}` : sender;
+
+  if (isSystem && status !== "error") {
+    return (
+      <div className="self-center text-xs text-gray-400 text-center px-2">
+        {text}
+      </div>
+    );
+  }
   
   let bgClass = isUser ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-800 border border-gray-200";
   if (status === "error") bgClass = "bg-red-500 text-white";

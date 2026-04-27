@@ -11,7 +11,6 @@ from palaver.app.api import chatrooms, agents, providers, keys
 from palaver.app.websockets.handler import WebSocketHandler
 from palaver.app.websockets.manager import get_ws_manager
 from palaver.app.constants import UI_DIR
-from palaver.app.events.ui import UserLeftEvent
 
 
 app = FastAPI()
@@ -43,10 +42,6 @@ async def websocket_endpoint(websocket: WebSocket, chatroom_id: str):
             await ws_handler.handle_data(data)
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket, chatroom_id)
-        await ws_manager.broadcast(
-            UserLeftEvent(message="A user left the chatroom").model_dump_json(),
-            chatroom_id,
-        )
 
 app.mount("/", StaticFiles(directory=UI_DIR / "dist", html=True), name="agent-chatroom")
 

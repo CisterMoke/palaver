@@ -13,6 +13,7 @@ class CoreEventBridge(BaseEventBridge):
     async def send_finished_event(self, run_deps: RunDeps, result: AgentRunResult):
         async with self.stream_session.get_stream() as stream:
             result_event = AgentFinishedEvent(
+                agent_id=run_deps.agent_id,
                 run_id=run_deps.run_id,
                 awaited_by=run_deps.awaited_by,
                 result=result.output

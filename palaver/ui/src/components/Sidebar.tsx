@@ -1,19 +1,20 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { fetchChatrooms, fetchAgents, deleteAgent } from "../api";
+import { fetchChatrooms, deleteChatroom, fetchAgents, deleteAgent } from "../api";
 import type { Chatroom, AgentInfo } from "../api";
 import AgentModal from "./AgentModal";
-import CreateChatroomModal from "./CreateChatroomModal";
+import ChatroomModal from "./ChatroomModal";
 import { getBotAvatarUrl } from "../utils/avatar";
 
 interface SidebarProps {
   activeChatroomId: string | null;
-  onSelectChatroom: (id: string) => void;
+  onSelectChatroom: (id: string | null) => void;
 }
 
 export default function Sidebar({ activeChatroomId, onSelectChatroom }: SidebarProps) {
   const [chatrooms, setChatrooms] = useState<Chatroom[]>([]);
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [showChatroomModal, setShowChatroomModal] = useState(false);
+  const [editingChatroom, setEditingChatroom] = useState<Chatroom | null>(null);
   const [showAgentModal, setShowAgentModal] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AgentInfo | null>(null);
   const [chatroomsPaneSize, setChatroomsPaneSize] = useState(50);
@@ -40,9 +41,23 @@ export default function Sidebar({ activeChatroomId, onSelectChatroom }: SidebarP
     }
   };
 
-  const handleChatroomCreated = async (chatroomId: string) => {
+  const handleChatroomSaved = async (chatroomId: string) => {
     await loadData();
     onSelectChatroom(chatroomId);
+    window.dispatchEvent(new CustomEvent("chatroom-updated", { detail: { chatroomId } }));
+    setEditingChatroom(null);
+  };
+
+  const handleChatroomDeleted = async (chatroomId: string) => {
+    if (confirm(`Are you sure you want to delete the chatroom?`)) {
+      try {
+        await deleteChatroom(chatroomId);
+        onSelectChatroom(null);
+        await loadData();
+      } catch (err) {
+        console.error("Failed to delete chatroom", err);
+      }
+    }
   };
 
   const handleAgentCreated = () => {
@@ -104,8 +119,11 @@ export default function Sidebar({ activeChatroomId, onSelectChatroom }: SidebarP
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-xl">Chatrooms</h2>
             <button
-              onClick={() => setShowChatroomModal(true)}
-              className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded transition-colors"
+              onClick={() => {
+                setEditingChatroom(null);
+                setShowChatroomModal(true);
+              }}
+              className="text-xs px-2 py-1 rounded transition-colors"
             >
               + Add
             </button>
@@ -114,21 +132,44 @@ export default function Sidebar({ activeChatroomId, onSelectChatroom }: SidebarP
             {chatrooms.length === 0 ? (
               <p className="text-gray-500 text-sm mb-4">No chatrooms found</p>
             ) : (
-              <ul className="space-y-1">
-                {chatrooms.map((room) => (
-                  <li
-                    key={room.id}
-                    onClick={() => onSelectChatroom(room.id)}
-                    className={`p-2 rounded cursor-pointer transition-colors ${
-                      activeChatroomId === room.id
-                        ? "bg-blue-100 text-blue-800 font-medium"
-                        : "hover:bg-gray-200"
-                    }`}
-                  >
-                    {room.name}
-                  </li>
-                ))}
-              </ul>
+                <ul className="space-y-1">
+                  {chatrooms.map((room) => (
+                    <li
+                      key={room.id}
+                      onClick={() => onSelectChatroom(room.id)}
+                      className={`p-2 rounded cursor-pointer transition-colors ${
+                        activeChatroomId === room.id
+                          ? "bg-blue-100 text-blue-800 font-medium"
+                          : "hover:bg-gray-200"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2 group">
+                        <span className="truncate">{room.name}</span>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            type="button"
+                            className="hover:text-blue-500"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setEditingChatroom(room);
+                              setShowChatroomModal(true);
+                            }}
+                            title="Edit Chatroom"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                          <button onClick={() => handleChatroomDeleted(room.id)} className="hover:text-red-500" title="Delete Agent">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
             )}
           </div>
         </div>
@@ -140,9 +181,9 @@ export default function Sidebar({ activeChatroomId, onSelectChatroom }: SidebarP
             event.preventDefault();
             setIsResizing(true);
           }}
-          className="h-5 flex items-center justify-center cursor-row-resize touch-none"
+          className="p-1 m-0.75 flex items-center justify-center cursor-row-resize touch-none"
         >
-          <span className="h-px w-12 bg-gray-300 rounded" />
+          <span className="h-px w-12 bg-black rounded" />
         </button>
 
         <div className="flex-1 min-h-0 flex flex-col">
@@ -150,7 +191,7 @@ export default function Sidebar({ activeChatroomId, onSelectChatroom }: SidebarP
             <h2 className="font-bold text-xl">Agents</h2>
             <button
               onClick={() => setShowAgentModal(true)}
-              className="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded transition-colors"
+              className="text-xs px-2 py-1 rounded transition-colors"
             >
               + Add
             </button>
@@ -177,12 +218,12 @@ export default function Sidebar({ activeChatroomId, onSelectChatroom }: SidebarP
                         <div className="font-medium text-gray-800 truncate">{agent.name}</div>
                       </div>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => setEditingAgent(agent)} className="text-gray-400 hover:text-blue-500" title="Edit Agent">
+                        <button onClick={() => setEditingAgent(agent)} className="hover:text-blue-500" title="Edit Agent">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                           </svg>
                         </button>
-                        <button onClick={() => handleAgentDeleted(agent)} className="text-gray-400 hover:text-red-500" title="Delete Agent">
+                        <button onClick={() => handleAgentDeleted(agent)} className="hover:text-red-500" title="Delete Agent">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
@@ -202,10 +243,14 @@ export default function Sidebar({ activeChatroomId, onSelectChatroom }: SidebarP
       </div>
 
       {showChatroomModal && (
-        <CreateChatroomModal
+        <ChatroomModal
           agents={agents}
-          onClose={() => setShowChatroomModal(false)}
-          onSuccess={handleChatroomCreated}
+          existingChatroom={editingChatroom}
+          onClose={() => {
+            setShowChatroomModal(false);
+            setEditingChatroom(null);
+          }}
+          onSuccess={handleChatroomSaved}
         />
       )}
 

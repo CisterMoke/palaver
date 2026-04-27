@@ -31,23 +31,34 @@ def get_chatroom(chatroom_id: str) -> Chatroom | None:
         logger.warning(f"Could not find chatroom with id '{chatroom_id}'")
 
 
-def update_chatroom(chatroom_id: str, update_request: ChatroomUpdate):
+def update_chatroom(chatroom_id: str, update_request: ChatroomUpdate) -> Chatroom:
     """Get a chatroom by ID"""
     chatroom = get_chatroom(chatroom_id)
     if chatroom is None:
         return
 
-    params = chatroom.model_dump() | {
+    params = chatroom.model_dump(by_alias=False) | {
         k: v for k, v in update_request.model_dump().items() if v is not None
     }
-    new_chatroom = Chatroom.model_validate(params)
+    new_chatroom = Chatroom.model_validate(params, by_name=True)
     db.save_chatroom(new_chatroom)
-    return
+    return new_chatroom
 
 
-def get_all_chatrooms() -> list[Chatroom]:
+def delete_chatroom(chatroom_id: str) -> bool:
+    """Delete a chatroom by ID"""
+    try:
+        return db.delete_chatroom(chatroom_id)
+    except ValueError:
+        logger.warning(f"Could not find chatroom with id '{chatroom_id}'")
+        return False
+
+
+def get_all_chatrooms(_sorted: bool = False) -> list[Chatroom]:
     """Get all chatrooms"""
-    return db.load_chatrooms()
+    chatrooms = db.load_chatrooms()
+    if _sorted:
+        return list(sorted(chatrooms, key=lambda c: c.created_at))
 
 
 def add_agent_to_chatroom(chatroom_id: str, agent_id: str) -> bool:
@@ -57,6 +68,17 @@ def add_agent_to_chatroom(chatroom_id: str, agent_id: str) -> bool:
         return False
 
     chatroom.agents.append(agent_id)
+    db.save_chatroom(chatroom)
+    return True
+
+
+def set_chatroom_agents(chatroom_id: str, agent_ids: list[str]) -> bool:
+    """Set the chatroom agents"""
+    chatroom = get_chatroom(chatroom_id)
+    if chatroom is None:
+        return False
+
+    chatroom.agents = agent_ids
     db.save_chatroom(chatroom)
     return True
 

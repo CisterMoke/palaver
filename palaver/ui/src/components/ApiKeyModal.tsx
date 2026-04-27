@@ -40,21 +40,24 @@ export default function ApiKeyModal({ selectedApiKey, existingApiKeys, onClose, 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60">
-      <div className="bg-white rounded-lg p-6 w-125 max-w-[90vw] shadow-xl">
-        <h2 className="text-xl font-bold mb-4">{selectedApiKey ? 'Edit API Key' : 'Add New API Key'}</h2>
-        
-        {actionSuccess && (
-          <div className={`mb-4 p-3 border rounded text-sm ${
-            actionSuccess.success
-              ? "bg-green-100 border-green-300 text-green-700" 
-              : "bg-red-100 border border-red-300 text-red-700"
-          }`}>
-            {actionSuccess.message}
-          </div>
-        )}
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-60 p-4 overflow-y-auto">
+      <div className="bg-white rounded-lg p-6 w-125 max-w-[90vw] shadow-xl max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden">
+        <div className="shrink-0">
+          <h2 className="text-xl font-bold">{selectedApiKey ? 'Edit API Key' : 'Add New API Key'}</h2>
+        </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4" autocomplete="off">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden" autocomplete="off">
+          <div className="flex-1 overflow-y-auto flex flex-col gap-4 pt-4 pr-1">
+            {actionSuccess && (
+              <div className={`p-3 border rounded text-sm ${
+                actionSuccess.success
+                  ? "bg-green-100 border-green-300 text-green-700" 
+                  : "bg-red-100 border border-red-300 text-red-700"
+              }`}>
+                {actionSuccess.message}
+              </div>
+            )}
+
           <div className="flex gap-4">
             <div className="flex-1">
               <label for="api-key-name-input" className="block text-sm font-medium text-gray-700 mb-1">API Key Name</label>
@@ -89,18 +92,20 @@ export default function ApiKeyModal({ selectedApiKey, existingApiKeys, onClose, 
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 mt-4 pt-4 border-t">
+          </div>
+
+          <div className="shrink-0 flex justify-end gap-3 pt-4 border-t">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+              className="px-4 py-2 rounded"
               disabled={loading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 disabled:opacity-50"
               disabled={loading}
             >
               {loading ? "Saving..." : (isNameFixed ? "Save API Key" : "Add API Key")}

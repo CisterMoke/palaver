@@ -14,15 +14,21 @@ class ChatMessageEvent(ChatMessage, UIEvent):
     type: str = "chat_message"
 
 
-class UserLeftEvent(UIEvent):
-    """Event for when a user leaves the chatroom"""
-
-    type: str = "user_left"
+class SystemMessageEvent(UIEvent):
+    """Event for a system message"""
+    type: str = "system_message"
     message: str
 
 
+class AgentLeftEvent(SystemMessageEvent):
+    """Event for when an agent leaves the chatroom"""
+
+    sub_type: str = "agent_left"
+    agent_id: str
+
+
 class BaseAgentResponseEvent(UIEvent):
-    """Bese event for agent responses"""
+    """Base event for agent responses"""
 
     agent_id: str
     message_id: str
@@ -73,3 +79,25 @@ class CommandResultEvent(UIEvent):
     status: str
     payload: dict | None = None
     error: str | None = None
+
+
+class AgentLoopStartEvent(UIEvent):
+    """Event indicating the agent loop has started"""
+    type: str = "agent_loop_start"
+
+
+class AgentLoopEndEvent(UIEvent):
+    """Event indicating the agent loop has ended"""
+    type: str = "agent_loop_end"
+
+
+class AgentStartEvent(UIEvent):
+    """Event indicating the agent has started"""
+    type: str = "agent_start_event"
+    agent_id: str
+
+
+class AgentEndEvent(UIEvent):
+    """Event indicating the agent has ended"""
+    type: str = "agent_end_event"
+    agent_id: str

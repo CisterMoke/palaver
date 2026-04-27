@@ -1,6 +1,7 @@
 import anyio
 import uuid
 
+from anyio.abc import TaskStatus
 from loguru import logger
 from pydantic_ai.capabilities import Hooks
 
@@ -10,13 +11,14 @@ from palaver.app.agent_router import get_router_policy
 from palaver.app.config import AgentLoopConfig
 from palaver.app.dataclasses.message import ChatMessage, Message
 from palaver.app.dataclasses.run_deps import RunDeps
+from palaver.app.enums import AgentLoopStatus
 from palaver.app.event_bridges.base import BaseEventBridge
 from palaver.app.event_bridges.core import CoreEventBridge
 from palaver.app.event_handlers.base import BaseEventHandler
 from palaver.app.event_handlers.core import CoreEventHandler
 from palaver.app.events import Event
 from palaver.app.events.agent import SendAgentEvent, AgentFinishedEvent, AwaitAgentEvent
-from palaver.app.events.system import RemoveAgentEvent
+from palaver.app.events.system import AgentLoopEvent, RemoveAgentEvent
 from palaver.app.events.ui import AgentResponseErrorEvent
 from palaver.app.models.agent import Agent
 from palaver.app.services.agent_service import AgentManager
@@ -124,29 +126,33 @@ class AgentLoop:
                 )
                 await stream.send(
                     AgentFinishedEvent(
+                        agent_id=event.recipient,
                         run_id=event.run_id,
                         awaited_by=event.awaited_by,
                         result=f"Received {type(exc).__name__}: {exc}",
                     )
                 )
 
-    async def start(self, agent_id: str, user_message: Message, chat_history: list[ChatMessage]):
+    async def start(self, agent_id: str, user_message: Message, chat_history: list[ChatMessage], task_status: TaskStatus):
         logger.debug("Starting Main Agent Loop.")
-        async with self.send_stream_session as session:
-            async with session.get_stream() as stream:
-                await_event = AwaitAgentEvent("root")
-                await stream.send(await_event)
-                send_event = SendAgentEvent(
-                    recipient=agent_id,
-                    message=user_message,
-                    chat_history=chat_history,
-                    run_id=str(uuid.uuid4()),
-                    agent_chain=None,
-                    awaited_by="root",
-                )
-                await stream.send(send_event)
-                await await_event
-                # await self.message_agent(agent_id, user_message, chat_history)
+
+        loop_start_event = AgentLoopEvent(status=AgentLoopStatus.STARTED)
+        await_event = AwaitAgentEvent("root")
+        send_event = SendAgentEvent(
+            recipient=agent_id,
+            message=user_message,
+            chat_history=chat_history,
+            run_id=str(uuid.uuid4()),
+            agent_chain=None,
+            awaited_by="root",
+        )
+
+        task_status.started(await_event)
+
+        async with self.send_stream_session.get_stream() as stream:
+            await stream.send(loop_start_event)
+            await stream.send(await_event)
+            await stream.send(send_event)
 
     async def iterate(self):
         logger.debug("Iterating Agent Events")
@@ -162,15 +168,22 @@ class AgentLoop:
                         self.agent_manager.delete_agent(event.agent_id)
                     for handler in self.event_handlers:
                         tg.start_soon(handler.handle_event, event)
+        
+        async with anyio.create_task_group() as tg:
+            event = AgentLoopEvent(status=AgentLoopStatus.ENDED)
+            for handler in self.event_handlers:
+                tg.start_soon(handler.handle_event, event)
 
         logger.debug("No more events received")
 
     async def run(self, agent_id: str, user_message: Message, chat_history: list[ChatMessage]):
         async with anyio.create_task_group() as tg:
-            tg.start_soon(
-                self.start,
-                agent_id,
-                user_message,
-                chat_history,
-            )
-            tg.start_soon(self.iterate)
+            async with self.send_stream_session:
+                await_event: AwaitAgentEvent = await tg.start(
+                    self.start,
+                    agent_id,
+                    user_message,
+                    chat_history,
+                )
+                tg.start_soon(self.iterate)
+                return await await_event

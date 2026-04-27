@@ -13,6 +13,7 @@ from palaver.app.agent_router.round_robin import RoundRobinRouterPolicy
 from palaver.app.dataclasses.run_deps import RunDeps
 from palaver.app.dataclasses.llm import ChatroomMessage, IncognitoMessage
 from palaver.app.events.system import RemoveAgentEvent
+from palaver.app.events.ui import SystemMessageEvent
 from palaver.app.exceptions import TerminateRun
 from palaver.app.prompts import INCOGNITO_PROMPT
 
@@ -120,14 +121,20 @@ class IncognitoRouterPolicy(RoundRobinRouterPolicy):
         ) -> str:
             if result:
                 result = "You won! You've successfully unmasked the human user. Now we celebrate!"
-                logger.debug(f"Agent '{self.active_agent_id}' successfully unmasked the human!")
+                async with self.stream_session.get_stream() as stream:
+                    await stream.send(SystemMessageEvent(message=f"Agent '{self.active_agent_id}' successfully unmasked the human!"))
                 return result
             else:
+                result = f"Agent '{self.active_agent_id}' failed to unmask the human. It guessed '{self.reverse_id_map[args['user']]}' instead."
                 async with self.stream_session.get_stream() as stream:
+                    await stream.send(SystemMessageEvent(message=result))
                     await stream.send(RemoveAgentEvent(self.active_agent_id))
+                    if len(self.agent_infos) == 2:
+                        await stream.send(SystemMessageEvent(message="✨🏆✨\nOnly one agent left.Congrats you won!\n✨🏆✨"))
+
 
                 raise TerminateRun(
-                    f"Agent '{self.active_agent_id}' failed to unmask the human. It guessed '{self.reverse_id_map[args['user']]}' instead.",
+                    result,
                     f"Terminating run '{self.active_agent_id}'[{ctx.deps.run_id}]"
                 )
             

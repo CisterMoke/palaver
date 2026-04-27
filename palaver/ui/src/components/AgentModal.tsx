@@ -148,28 +148,31 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-125 max-w-[90vw] shadow-xl">
-        <h2 className="text-xl font-bold mb-4">{existingAgent ? 'Edit Agent' : 'Create New Agent'}</h2>
-        
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded text-sm">
-            {error}
-          </div>
-        )}
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-lg p-6 w-125 max-w-[90vw] shadow-xl max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden">
+        <div className="shrink-0">
+          <h2 className="text-xl font-bold">{existingAgent ? 'Edit Agent' : 'Create New Agent'}</h2>
+        </div>
 
-        {testResult && (
-          <div className={`mb-4 p-3 border rounded text-sm ${
-            testResult.success
-              ? "bg-green-100 border-green-300 text-green-700" 
-              : "bg-red-100 border border-red-300 text-red-700"
-          }`}>
-            <span className="font-bold">{testResult.success ? "Test Passed: " : "Test Failed: "}</span>
-            {testResult.message}
-          </div>
-        )}
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden" autocomplete="off">
+          <div className="flex-1 overflow-y-auto flex flex-col gap-4 pt-4 pr-1">
+            {error && (
+              <div className="p-3 bg-red-100 border border-red-300 text-red-700 rounded text-sm">
+                {error}
+              </div>
+            )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4" autocomplete="off">
+            {testResult && (
+              <div className={`p-3 border rounded text-sm ${
+                testResult.success
+                  ? "bg-green-100 border-green-300 text-green-700" 
+                  : "bg-red-100 border border-red-300 text-red-700"
+              }`}>
+                <span className="font-bold">{testResult.success ? "Test Passed: " : "Test Failed: "}</span>
+                {testResult.message}
+              </div>
+            )}
+
           <div>
             <label for="agent-name-input" className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
             <input
@@ -213,12 +216,12 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
                 <label for="provider-options" className="block text-sm font-medium text-gray-700">Provider</label>
                 {provider && provider !== "new" && (
                   <div className="flex items-center gap-1">
-                    <button type="button" onClick={() => setProviderModalMode("edit")} className="text-gray-400 hover:text-blue-500" title="Edit Provider">
+                    <button type="button" onClick={() => setProviderModalMode("edit")} className="hover:text-blue-500" title="Edit Provider">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                       </svg>
                     </button>
-                    <button type="button" onClick={handleDeleteProvider} className="text-gray-400 hover:text-red-500" title="Delete Provider">
+                    <button type="button" onClick={handleDeleteProvider} className="hover:text-red-500" title="Delete Provider">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
@@ -272,7 +275,9 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
             </div>
           </div>
 
-          <div className="flex justify-between items-center mt-4 pt-4 border-t">
+          </div>
+
+          <div className="shrink-0 flex justify-between items-center pt-4 border-t">
             <button
               type="button"
               onClick={handleTest}
@@ -285,14 +290,14 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+                className="px-4 py-2 hover:bg-gray-100 rounded"
                 disabled={loading || testing}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 disabled:opacity-50"
                 disabled={loading || testing}
               >
                 {loading ? "Saving..." : (existingAgent ? "Save Agent" : "Create Agent")}

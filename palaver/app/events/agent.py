@@ -39,7 +39,8 @@ class AwaitAgentEvent(Event):
 
 
 class AgentFinishedEvent(Event):
-    def __init__(self, run_id: str, awaited_by: str, result: str):
+    def __init__(self, agent_id: str, run_id: str, awaited_by: str, result: str):
+        self.agent_id = agent_id
         self.run_id = run_id
         self.awaited_by = awaited_by
         self.result = result

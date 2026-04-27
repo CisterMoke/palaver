@@ -50,6 +50,10 @@ class AddAgentRequest(BaseModel):
     agent_id: str
 
 
+class SetAgentsRequest(BaseModel):
+    agent_ids: list[str]
+
+
 class CreateAgentRequest(AgentConfig):
     pass
 

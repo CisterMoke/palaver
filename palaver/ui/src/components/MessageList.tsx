@@ -1,8 +1,8 @@
 import Message from "./Message";
-import type { ChatMessage } from "../api";
+import type { SimpleMessage } from "../api";
 
 interface MessageListProps {
-  messages: ChatMessage[];
+  messages: SimpleMessage[];
   resolveAgentName: (idOrName: string) => string;
 }
 

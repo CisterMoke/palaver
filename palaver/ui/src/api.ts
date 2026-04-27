@@ -14,7 +14,22 @@ export interface AgentInfo extends AgentConfig {
 export interface Chatroom {
     id: string;
     name: string;
-    description: string;
+    agents: string[];
+    limit_subagent_calls: boolean;
+    max_subagent_calls: number;
+    max_message_history: number;
+    routing_type: RoutingType;
+    created_at: string;
+}
+
+export type RoutingType = "autonomous" | "round_robin" | "single" | "incognito";
+
+export interface ChatroomUpsertPayload {
+    name: string;
+    limit_subagent_calls: boolean;
+    max_subagent_calls: number;
+    max_message_history: number;
+    routing_type: RoutingType;
 }
 
 export interface ProviderConfig {
@@ -24,15 +39,18 @@ export interface ProviderConfig {
     name: string;
 }
 
-export interface ChatMessage {
+export interface SimpleMessage {
     id: string;
-    chatroom_id: string;
     sender: string;
     recipients?: string[];
     role: "user" | "assistant" | "system";
     content: string;
-    timestamp: string;
     status?: "sending" | "error" | "sent";
+}
+
+export interface ChatMessage extends SimpleMessage {
+    chatroom_id: string;
+    timestamp: string;
 }
 
 const getApiBase = (): string => {
@@ -158,13 +176,31 @@ export async function fetchChatrooms(): Promise<Chatroom[]> {
     return res.json();
 }
 
-export async function createChatroom(name: string, description: string = ""): Promise<Chatroom> {
+export async function createChatroom(payload: ChatroomUpsertPayload): Promise<Chatroom> {
     const res = await fetch(`${API_BASE}/chatrooms/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description })
+        body: JSON.stringify(payload)
     });
     if (!res.ok) throw new Error("Failed to create chatroom");
+    return res.json();
+}
+
+export async function updateChatroom(chatroomId: string, payload: Partial<ChatroomUpsertPayload>): Promise<Chatroom> {
+    const res = await fetch(`${API_BASE}/chatrooms/${chatroomId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error("Failed to update chatroom");
+    return res.json();
+}
+
+export async function deleteChatroom(chatroomId: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/chatrooms/${chatroomId}`, {
+        method: "DELETE"
+    });
+    if (!res.ok) throw new Error("Failed to delete chatroom");
     return res.json();
 }
 
@@ -172,6 +208,19 @@ export async function fetchChatroomParticipants(chatroomId: string): Promise<str
     const res = await fetch(`${API_BASE}/chatrooms/${chatroomId}/agents`);
     if (!res.ok) throw new Error("Failed to fetch participants");
     return res.json();
+}
+
+export async function setChatroomParticipant(chatroomId: string, agentIds: string[]): Promise<void> {
+    const res = await fetch(`${API_BASE}/chatrooms/${chatroomId}/agents`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agent_ids: agentIds })
+    });
+    if (!res.ok) throw new Error("Failed to add participant");
+}
+
+export async function setChatroomParticipants(chatroomId: string, agentIds: string[]): Promise<void> {
+    return setChatroomParticipant(chatroomId, agentIds);
 }
 
 export async function addChatroomParticipant(chatroomId: string, agentId: string): Promise<void> {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { fetchAgents, fetchChatroomParticipants, addChatroomParticipant, removeChatroomParticipant } from "../api";
 import type { AgentInfo } from "../api";
+import ParticipantsList from "./ParticipantsList";
 
 interface ParticipantsModalProps {
   chatroomId: string;
@@ -11,8 +12,9 @@ interface ParticipantsModalProps {
 export default function ParticipantsModal({ chatroomId, onClose, onChanged }: ParticipantsModalProps) {
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [participantIds, setParticipantIds] = useState<string[]>([]);
+  const [selectedParticipantIds, setSelectedParticipantIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<string | null>(null); // agent id currently being toggled
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -27,6 +29,7 @@ export default function ParticipantsModal({ chatroomId, onClose, onChanged }: Pa
       ]);
       setAgents(allAgents);
       setParticipantIds(ids);
+      setSelectedParticipantIds(ids);
     } catch (e) {
       console.error("Failed to load participants", e);
     } finally {
@@ -34,31 +37,44 @@ export default function ParticipantsModal({ chatroomId, onClose, onChanged }: Pa
     }
   };
 
-  const toggle = async (agent: AgentInfo) => {
-    if (busy) return;
-    setBusy(agent.id);
+  const handleDone = async () => {
+    if (loading || saving) return;
+
+    const toAdd = selectedParticipantIds.filter((id) => !participantIds.includes(id));
+    const toRemove = participantIds.filter((id) => !selectedParticipantIds.includes(id));
+
+    if (toAdd.length === 0 && toRemove.length === 0) {
+      onClose();
+      return;
+    }
+
+    setSaving(true);
     try {
-      if (participantIds.includes(agent.id)) {
-        await removeChatroomParticipant(chatroomId, agent.id);
-        setParticipantIds((prev) => prev.filter((id) => id !== agent.id));
-      } else {
-        await addChatroomParticipant(chatroomId, agent.id);
-        setParticipantIds((prev) => [...prev, agent.id]);
+      const results = await Promise.allSettled([
+        ...toAdd.map((agentId) => addChatroomParticipant(chatroomId, agentId)),
+        ...toRemove.map((agentId) => removeChatroomParticipant(chatroomId, agentId)),
+      ]);
+
+      const failedCount = results.filter((result) => result.status === "rejected").length;
+      if (failedCount > 0) {
+        console.error(`Failed to update ${failedCount} participant(s).`);
       }
+
       onChanged();
+      onClose();
     } catch (e) {
-      console.error("Failed to toggle participant", e);
+      console.error("Failed to update participants", e);
     } finally {
-      setBusy(null);
+      setSaving(false);
     }
   };
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 overflow-y-auto"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden max-h-[calc(100vh-2rem)] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800">Manage Participants</h2>
@@ -72,54 +88,24 @@ export default function ParticipantsModal({ chatroomId, onClose, onChanged }: Pa
         </div>
 
         {/* Body */}
-        <div className="p-6 max-h-96 overflow-y-auto">
-          {loading ? (
-            <p className="text-gray-500 text-sm text-center py-4">Loading agents…</p>
-          ) : agents.length === 0 ? (
-            <p className="text-gray-500 text-sm text-center py-4">No agents available. Create one first.</p>
-          ) : (
-            <ul className="space-y-2">
-              {agents.map((agent) => {
-                const isParticipant = participantIds.includes(agent.id);
-                const isBusy = busy === agent.id;
-                return (
-                  <li
-                    key={agent.id}
-                    className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
-                  >
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-medium text-gray-800 text-sm">{agent.name}</span>
-                      {agent.description && (
-                        <span className="text-xs text-gray-400 truncate">{agent.description}</span>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => toggle(agent)}
-                      disabled={!!busy}
-                      className={`ml-3 shrink-0 px-3 py-1 rounded-full text-xs font-medium border transition-all ${
-                        isBusy
-                          ? "opacity-50 cursor-wait bg-gray-100 text-gray-400 border-gray-200"
-                          : isParticipant
-                          ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
-                          : "bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
-                      }`}
-                    >
-                      {isBusy ? "…" : isParticipant ? "Remove" : "Add"}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+        <div className="p-6 flex-1 overflow-y-auto">
+          <ParticipantsList
+            agents={agents}
+            initialSelectedIds={participantIds}
+            loading={loading}
+            disabled={saving}
+            onSelectionChange={setSelectedParticipantIds}
+          />
         </div>
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
           <button
-            onClick={onClose}
+            onClick={handleDone}
             className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors border-0"
+            disabled={loading || saving}
           >
-            Done
+            {saving ? "Saving..." : "Done"}
           </button>
         </div>
       </div>
