@@ -125,6 +125,8 @@ class AgentManager:
     ) -> list[ModelMessage]:
         model_messages = []
         for msg in messages:
+            if msg.role == RoleEnum.SYSTEM:
+                continue
             if msg.role == RoleEnum.USER:
                 model_messages.append(
                     self._construct_user_message(msg.content, "USER", RoleEnum.USER)

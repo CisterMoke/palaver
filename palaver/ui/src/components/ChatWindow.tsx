@@ -21,7 +21,7 @@ type AgentActivity = {
   order: number;
 };
 
-type ConnectionStatus = "connecting" | "connected" | "reconnecting";
+type ConnectionStatus = "connecting" | "connected" | "reconnecting" | "running";
 type SocketEventData = { type?: string; [key: string]: unknown };
 
 const MAX_PENDING_SEND_ATTEMPTS = 5;
@@ -337,10 +337,14 @@ export default function ChatWindow({ chatroom }: ChatWindowProps) {
 
   const handleAgentLoopStartEvent = () => {
     setActiveAgentLoops((current) => current + 1);
+    setConnectionStatus("running");
   };
 
   const handleAgentLoopEndEvent = () => {
     setActiveAgentLoops((current) => Math.max(0, current - 1));
+    if (activeAgentLoops <= 0) {
+      setConnectionStatus("connected")
+    }
   };
 
   const handleAgentStartEvent = (data: SocketEventData) => {
@@ -367,7 +371,6 @@ export default function ChatWindow({ chatroom }: ChatWindowProps) {
       if (agentId) {
         setParticipantIds((prev) => prev.filter((id) => id !== agentId));
       }
-      refreshParticipants();
     }
   };
 
@@ -632,17 +635,19 @@ export default function ChatWindow({ chatroom }: ChatWindowProps) {
 
   const connectionLabel = connectionStatus === "connected"
     ? "Live"
-    : connectionStatus === "connecting"
-      ? "Connecting..."
-      : `Reconnecting${reconnectAttemptDisplay > 0 ? ` (${reconnectAttemptDisplay})` : ""}...`;
+    : connectionStatus === "running"
+      ? "Running..."
+      : connectionStatus === "connecting"
+        ? "Connecting..."
+        : `Reconnecting${reconnectAttemptDisplay > 0 ? ` (${reconnectAttemptDisplay})` : ""}...`;
 
   const connectionDotClass = connectionStatus === "connected"
     ? "bg-green-500"
-    : connectionStatus === "connecting"
-      ? "bg-yellow-500"
-      : "bg-orange-500";
-
-  const isAgentLoopRunning = activeAgentLoops > 0;
+    : connectionStatus === "running"
+      ? "bg-blue-500"
+      : connectionStatus === "connecting"
+        ? "bg-yellow-500"
+        : "bg-orange-500";
 
   const typingAgentNames = useMemo(() => {
     const sortedTypingAgents = Object.entries(agentActivityById)
@@ -675,9 +680,6 @@ export default function ChatWindow({ chatroom }: ChatWindowProps) {
               </span>
             ) : (
               <span className="text-xs text-gray-400 mt-0.5">No participants yet</span>
-            )}
-            {isAgentLoopRunning && (
-            <span className="text-xs text-blue-600 mt-0.5">Agents running...</span>
             )}
           </div>
         </div>

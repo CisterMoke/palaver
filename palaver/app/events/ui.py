@@ -17,6 +17,7 @@ class ChatMessageEvent(ChatMessage, UIEvent):
 class SystemMessageEvent(UIEvent):
     """Event for a system message"""
     type: str = "system_message"
+    message_id: str
     message: str
 
 

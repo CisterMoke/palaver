@@ -9,11 +9,11 @@ from palaver.app.events.system import AgentLoopEvent, RemoveAgentEvent
 from palaver.app.events.ui import (
     AgentResponseCompleteEvent,
     UIEvent,
-    AgentLeftEvent,
     AgentLoopStartEvent,
     AgentLoopEndEvent,
     AgentStartEvent,
-    AgentEndEvent
+    AgentEndEvent,
+    SystemMessageEvent,
 )
 from palaver.app.dataclasses.message import ChatMessage
 from palaver.app.websockets.manager import get_ws_manager
@@ -42,11 +42,8 @@ class ChatroomEventHandler(BaseEventHandler):
             elif event.status == AgentLoopStatus.ENDED:
                 ui_event = AgentLoopEndEvent()
 
-        if isinstance(event, RemoveAgentEvent):
-            ui_event = AgentLeftEvent(
-                message=f"Agent '{event.agent_id}' left the chatroom",
-                agent_id=event.agent_id,
-                )
+        if isinstance(event, SystemMessageEvent):
+            self._store_system_message(event)
 
         if isinstance(event, SendAgentEvent):
             ui_event = AgentStartEvent(agent_id=event.recipient)
@@ -66,5 +63,18 @@ class ChatroomEventHandler(BaseEventHandler):
             content=event.content,
             timestamp=timestamp,
             recipients=None if event.recipient is None else [event.recipient],
+        )
+        db.save_message(self.chatroom_id, reply_message)
+
+    def _store_system_message(self, event: SystemMessageEvent) -> None:
+        timestamp = create_timestamp()
+        reply_message = ChatMessage(
+            id=event.message_id,
+            chatroom_id=self.chatroom_id,
+            sender="SYSTEM",
+            role=RoleEnum.SYSTEM,
+            content=event.message,
+            timestamp=timestamp,
+            recipients=None,
         )
         db.save_message(self.chatroom_id, reply_message)

@@ -35,7 +35,7 @@ export default function MessageInput({ value, onChange, onSend }: MessageInputPr
         onChange={(e: TargetedEvent<HTMLTextAreaElement>) => onChange(e.currentTarget.value)}
         onInput={autoGrow}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+          if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             onSend();
           }
