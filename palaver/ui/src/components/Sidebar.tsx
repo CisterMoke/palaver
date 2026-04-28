@@ -14,7 +14,7 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
   const [chatrooms, setChatrooms] = useState<Chatroom[]>([]);
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [showChatroomModal, setShowChatroomModal] = useState(false);
-  const [editingChatroom, setEditingChatroom] = useState<Chatroom | null>(null);
+  const [editingChatroomId, setEditingChatroomId] = useState<string | null>(null);
   const [showAgentModal, setShowAgentModal] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AgentInfo | null>(null);
   const [chatroomsPaneSize, setChatroomsPaneSize] = useState(50);
@@ -25,7 +25,7 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
     loadData();
   }, []);
 
-  const loadData = async () => {
+  const loadData = async (): Promise<Chatroom[]> => {
     try {
       const [rooms, fetchedAgents] = await Promise.all([
         fetchChatrooms(),
@@ -35,17 +35,25 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
       setAgents(fetchedAgents);
       if (rooms.length > 0 && !activeChatroom) {
         onSelectChatroom(rooms[0]);
+      } else if (activeChatroom) {
+        const refreshedActive = rooms.find((room) => room.id === activeChatroom.id) ?? null;
+        onSelectChatroom(refreshedActive);
       }
+      return rooms;
     } catch (err) {
       console.error(err);
+      return [];
     }
   };
 
-  const handleChatroomSaved = async (chatroom: Chatroom) => {
-    const chatroomId = chatroom.id;
-    await loadData();
+  const handleChatroomSaved = async (chatroomId: string) => {
+    const rooms = await loadData();
+    const refreshedChatroom = rooms.find((room) => room.id === chatroomId) ?? null;
+    if (refreshedChatroom) {
+      onSelectChatroom(refreshedChatroom);
+    }
     window.dispatchEvent(new CustomEvent("chatroom-updated", { detail: { chatroomId } }));
-    setEditingChatroom(null);
+    setEditingChatroomId(null);
   };
 
   const handleChatroomDeleted = async (chatroomId: string) => {
@@ -120,7 +128,7 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
             <h2 className="font-bold text-xl">Chatrooms</h2>
             <button
               onClick={() => {
-                setEditingChatroom(null);
+                setEditingChatroomId(null);
                 setShowChatroomModal(true);
               }}
               className="text-xs px-2 py-1 rounded transition-colors"
@@ -138,7 +146,7 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
                       key={room.id}
                       onClick={() => onSelectChatroom(room)}
                       className={`p-2 rounded cursor-pointer transition-colors ${
-                        activeChatroom === room
+                        activeChatroom?.id === room.id
                           ? "bg-blue-100 text-blue-800 font-medium"
                           : "hover:bg-gray-200"
                       }`}
@@ -151,7 +159,7 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
                             className="hover:text-blue-500"
                             onClick={(event) => {
                               event.stopPropagation();
-                              setEditingChatroom(room);
+                              setEditingChatroomId(room.id);
                               setShowChatroomModal(true);
                             }}
                             title="Edit Chatroom"
@@ -160,7 +168,7 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
                           </button>
-                          <button onClick={() => handleChatroomDeleted(room.id)} className="hover:text-red-500" title="Delete Agent">
+                          <button onClick={() => handleChatroomDeleted(room.id)} className="hover:text-red-500" title="Delete Chatroom">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
@@ -231,9 +239,8 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
                       </div>
                     </div>
                     {agent.description && (
-                      <div className="text-xs text-gray-500 truncate">{agent.description}</div>
+                      <div className="text-xs text-gray-500 line-clamp-2">{agent.description}</div>
                     )}
-                    <div className="text-[10px] text-gray-400 font-mono mt-1">@{agent.id}</div>
                   </li>
                 ))}
               </ul>
@@ -245,10 +252,10 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
       {showChatroomModal && (
         <ChatroomModal
           agents={agents}
-          existingChatroom={editingChatroom}
+          chatroomId={editingChatroomId}
           onClose={() => {
             setShowChatroomModal(false);
-            setEditingChatroom(null);
+            setEditingChatroomId(null);
           }}
           onSuccess={handleChatroomSaved}
         />

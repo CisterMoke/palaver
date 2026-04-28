@@ -170,6 +170,12 @@ export async function fetchProviderModels(providerName: string): Promise<string[
     return res.json();
 }
 
+export async function fetchChatroom(chatroomId: string): Promise<Chatroom> {
+    const res = await fetch(`${API_BASE}/chatrooms/${chatroomId}`);
+    if (!res.ok) throw new Error("Failed to fetch chatroom");
+    return res.json();
+}
+
 export async function fetchChatrooms(): Promise<Chatroom[]> {
     const res = await fetch(`${API_BASE}/chatrooms/`);
     if (!res.ok) throw new Error("Failed to fetch chatrooms");

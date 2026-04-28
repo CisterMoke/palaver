@@ -1,39 +1,76 @@
 import { useEffect, useState } from "preact/hooks";
 import type { TargetedEvent } from "preact";
-import { createChatroom, setChatroomParticipants, updateChatroom } from "../api";
-import type { AgentInfo, Chatroom, RoutingType } from "../api";
+import { createChatroom, fetchChatroom, setChatroomParticipants, updateChatroom } from "../api";
+import type { AgentInfo, RoutingType } from "../api";
 import ParticipantsList from "./ParticipantsList";
 
-interface CreateChatroomModalProps {
+interface ChatroomModalProps {
   agents: AgentInfo[];
-  existingChatroom?: Chatroom | null;
+  chatroomId?: string | null;
   onClose: () => void;
-  onSuccess: (chatroom: Chatroom) => void | Promise<void>;
+  onSuccess: (chatroomId: string) => void | Promise<void>;
 }
 
 export default function ChatroomModal({
   agents,
-  existingChatroom,
+  chatroomId,
   onClose,
   onSuccess,
-}: CreateChatroomModalProps) {
-  const [name, setName] = useState(existingChatroom?.name ?? "");
-  const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>(existingChatroom?.agents ?? []);
-  const [routingType, setRoutingType] = useState<RoutingType>(existingChatroom?.routing_type ?? "round_robin");
-  const [limitSubagentCalls, setLimitSubagentCalls] = useState(existingChatroom?.limit_subagent_calls ?? true);
-  const [maxSubagentCalls, setMaxSubagentCalls] = useState(existingChatroom?.max_subagent_calls ?? 3);
-  const [maxMessageHistory, setMaxMessageHistory] = useState(existingChatroom?.max_message_history ?? 20);
+}: ChatroomModalProps) {
+  const isEditing = !!chatroomId;
+  const [name, setName] = useState("");
+  const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([]);
+  const [routingType, setRoutingType] = useState<RoutingType>("round_robin");
+  const [limitSubagentCalls, setLimitSubagentCalls] = useState(true);
+  const [maxSubagentCalls, setMaxSubagentCalls] = useState(3);
+  const [maxMessageHistory, setMaxMessageHistory] = useState(20);
+  const [initializing, setInitializing] = useState(isEditing);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setName(existingChatroom?.name ?? "");
-    setSelectedAgentIds(existingChatroom?.agents ?? []);
-    setRoutingType(existingChatroom?.routing_type ?? "round_robin");
-    setLimitSubagentCalls(existingChatroom?.limit_subagent_calls ?? true);
-    setMaxSubagentCalls(existingChatroom?.max_subagent_calls ?? 3);
-    setMaxMessageHistory(existingChatroom?.max_message_history ?? 20);
-  }, [existingChatroom]);
+    let active = true;
+
+    if (!chatroomId) {
+      setName("");
+      setSelectedAgentIds([]);
+      setRoutingType("round_robin");
+      setLimitSubagentCalls(true);
+      setMaxSubagentCalls(3);
+      setMaxMessageHistory(20);
+      setError("");
+      setInitializing(false);
+      return () => {
+        active = false;
+      };
+    }
+
+    setInitializing(true);
+    setError("");
+
+    fetchChatroom(chatroomId)
+      .then((chatroom) => {
+        if (!active) return;
+        setName(chatroom.name);
+        setSelectedAgentIds(chatroom.agents);
+        setRoutingType(chatroom.routing_type);
+        setLimitSubagentCalls(chatroom.limit_subagent_calls);
+        setMaxSubagentCalls(chatroom.max_subagent_calls);
+        setMaxMessageHistory(chatroom.max_message_history);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : "Failed to load chatroom");
+      })
+      .finally(() => {
+        if (!active) return;
+        setInitializing(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [chatroomId]);
 
   const handleSubmit = async (event: TargetedEvent) => {
     event.preventDefault();
@@ -43,6 +80,8 @@ export default function ChatroomModal({
       setError("Name is required");
       return;
     }
+
+    if (initializing) return;
 
     setLoading(true);
     setError("");
@@ -56,23 +95,24 @@ export default function ChatroomModal({
         max_message_history: maxMessageHistory,
       };
 
-      let room: Chatroom;
-      if (existingChatroom) {
-        await updateChatroom(existingChatroom.id, payload);
-        room = existingChatroom;
+      let roomId: string;
+      if (chatroomId) {
+        await updateChatroom(chatroomId, payload);
+        roomId = chatroomId;
       } else {
-        room = await createChatroom(payload);
+        const room = await createChatroom(payload);
+        roomId = room.id;
       }
 
-      await setChatroomParticipants(room.id, selectedAgentIds);
+      await setChatroomParticipants(roomId, selectedAgentIds);
 
-      await onSuccess(room);
+      await onSuccess(roomId);
       onClose();
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : existingChatroom
+          : chatroomId
           ? "Failed to update chatroom"
           : "Failed to create chatroom"
       );
@@ -89,7 +129,7 @@ export default function ChatroomModal({
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[calc(100vh-2rem)] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800">
-            {existingChatroom ? "Edit Chatroom" : "Create Chatroom"}
+            {isEditing ? "Edit Chatroom" : "Create Chatroom"}
           </h2>
           <button
             type="button"
@@ -121,7 +161,7 @@ export default function ChatroomModal({
               onChange={(event) => setName(event.currentTarget.value)}
               placeholder="e.g. Product Team"
               required
-              disabled={loading}
+               disabled={loading || initializing}
             />
             </div>
 
@@ -134,7 +174,7 @@ export default function ChatroomModal({
               className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               value={routingType}
               onChange={(event) => setRoutingType(event.currentTarget.value as RoutingType)}
-              disabled={loading}
+               disabled={loading || initializing}
             >
               <option value="round_robin">Round robin</option>
               <option value="autonomous">Autonomous</option>
@@ -153,7 +193,7 @@ export default function ChatroomModal({
               checked={limitSubagentCalls}
               onChange={(event) => setLimitSubagentCalls(event.currentTarget.checked)}
               className="h-4 w-4"
-              disabled={loading}
+               disabled={loading || initializing}
             />
             </div>
 
@@ -168,7 +208,7 @@ export default function ChatroomModal({
               className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-500"
               value={maxSubagentCalls}
               onChange={(event) => setMaxSubagentCalls(Math.max(1, Number(event.currentTarget.value || 1)))}
-              disabled={loading || !limitSubagentCalls}
+               disabled={loading || initializing || !limitSubagentCalls}
             />
             </div>
 
@@ -183,7 +223,7 @@ export default function ChatroomModal({
               className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               value={maxMessageHistory}
               onChange={(event) => setMaxMessageHistory(Math.max(1, Number(event.currentTarget.value || 1)))}
-              disabled={loading}
+               disabled={loading || initializing}
             />
             </div>
 
@@ -193,11 +233,11 @@ export default function ChatroomModal({
                 <span className="text-xs text-gray-500">{selectedAgentIds.length} selected</span>
               </div>
 
-              <div className="max-h-44 overflow-y-auto border border-gray-200 rounded p-2">
+              <div className="auto border border-gray-200 rounded p-2">
                 <ParticipantsList
                   agents={agents}
                   initialSelectedIds={selectedAgentIds}
-                  disabled={loading}
+                  disabled={loading || initializing}
                   emptyText="No agents available yet."
                   onSelectionChange={setSelectedAgentIds}
                 />
@@ -210,20 +250,22 @@ export default function ChatroomModal({
               type="button"
               onClick={onClose}
               className="px-4 py-2 rounded"
-              disabled={loading}
+               disabled={loading || initializing}
             >
               Cancel
             </button>
             <button
               type="submit"
               className="px-4 py-2 rounded disabled:opacity-50"
-              disabled={loading}
+               disabled={loading || initializing}
             >
-              {loading
-                ? existingChatroom
+              {initializing
+                ? "Loading..."
+                : loading
+                ? chatroomId
                   ? "Saving..."
                   : "Creating..."
-                : existingChatroom
+                : chatroomId
                 ? "Save Chatroom"
                 : "Create Chatroom"}
             </button>
