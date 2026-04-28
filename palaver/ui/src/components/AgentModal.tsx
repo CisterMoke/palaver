@@ -149,7 +149,7 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-lg p-6 w-125 max-w-[90vw] shadow-xl max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden">
+      <div className="bg-white absolute rounded-lg p-6 w-125 max-w-[90vw] shadow-xl max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden">
         <div className="shrink-0">
           <h2 className="text-xl font-bold">{existingAgent ? 'Edit Agent' : 'Create New Agent'}</h2>
         </div>
@@ -306,7 +306,6 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
           </div>
         </form>
       </div>
-
       {providerModalMode !== null && (
         <ProviderModal
           existingProvider={providerModalMode === "edit" ? availableProviders.find(p => p.name === provider) : undefined}

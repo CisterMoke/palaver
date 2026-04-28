@@ -145,7 +145,7 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
                     <li
                       key={room.id}
                       onClick={() => onSelectChatroom(room)}
-                      className={`p-2 rounded cursor-pointer transition-colors ${
+                      className={`pl-2 rounded cursor-pointer transition-colors ${
                         activeChatroom?.id === room.id
                           ? "bg-blue-100 text-blue-800 font-medium"
                           : "hover:bg-gray-200"

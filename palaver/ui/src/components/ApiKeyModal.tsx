@@ -40,8 +40,9 @@ export default function ApiKeyModal({ selectedApiKey, existingApiKeys, onClose, 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-60 p-4 overflow-y-auto">
-      <div className="bg-white rounded-lg p-6 w-125 max-w-[90vw] shadow-xl max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 flex items-start justify-center z-60 p-4 overflow-y-auto">
+      <div className="bg-black/50 h-full rounded-lg w-125 max-w-[90vw] shadow-xl max-h-[calc(100vh-2rem)] overflow-hidden"></div>
+      <div className="bg-white absolute rounded-lg p-6 w-125 max-w-[90vw] shadow-xl max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden">
         <div className="shrink-0">
           <h2 className="text-xl font-bold">{selectedApiKey ? 'Edit API Key' : 'Add New API Key'}</h2>
         </div>
