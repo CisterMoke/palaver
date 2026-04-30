@@ -8,6 +8,7 @@ import tomli_w
 
 from pydantic import BaseModel, Field, model_validator
 from pydantic.fields import FieldInfo
+from pydantic_ai.settings import ThinkingLevel
 from pydantic_core import to_jsonable_python
 from pydantic_settings import (
     BaseSettings,
@@ -32,7 +33,9 @@ class AgentConfig(BaseModel):
     description: str
     prompt: str = "You are a helpful assistant."
     instructions: list[str] = []
-    temperature: float = -1.0
+    temperature: float | None = None
+    top_p: float | None = None
+    thinking: ThinkingLevel | None = None
 
     @model_validator(mode="before")
     @classmethod

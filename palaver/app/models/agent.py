@@ -3,9 +3,9 @@ import typing
 
 from loguru import logger
 from pydantic_ai import Agent as PydanticAgent
-from pydantic_ai.agent import ModelSettings
 from pydantic_ai.models import infer_model, KnownModelName
 from pydantic_ai.providers import Provider, infer_provider_class
+from pydantic_ai.settings import ModelSettings
 
 from palaver.app.config import ProviderConfig
 from palaver.app.dataclasses.agent import AgentInfo
@@ -48,12 +48,14 @@ class Agent:
         full_name = f"{self.provider.service}:{self.model}"
         agent_model = infer_model(model=full_name, provider_factory=self._provider_factory(self.provider))
         model_settings = ModelSettings(
-            temperature=None if self.info.temperature < 0 else self.info.temperature
+            temperature=self.info.temperature,
+            top_p=self.info.top_p ,
+            thinking=self.info.thinking,
         )
         pydantic_agent = PydanticAgent(
             model=agent_model,
             instructions=None if not self.instructions else self.instructions,
-            model_settings=model_settings,
+            model_settings={k: v for k, v in model_settings.items() if v is not None},
             deps_type=RunDeps,
             end_strategy="exhaustive",
             capabilities=self.capabilities,

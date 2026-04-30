@@ -659,9 +659,9 @@ export default function ChatWindow({ chatroom }: ChatWindowProps) {
 
   const typingLabel = useMemo(() => {
     if (typingAgentNames.length === 0) return null;
-    if (typingAgentNames.length === 1) return `${typingAgentNames[0]} thinking...`;
-    if (typingAgentNames.length === 2) return `${typingAgentNames[0]} and ${typingAgentNames[1]} thinking...`;
-    return `${typingAgentNames[0]}, ${typingAgentNames[1]} +${typingAgentNames.length - 2} thinking...`;
+    if (typingAgentNames.length === 1) return `${typingAgentNames[0]} is thinking...`;
+    if (typingAgentNames.length === 2) return `${typingAgentNames[0]} and ${typingAgentNames[1]} are thinking...`;
+    return `${typingAgentNames[0]}, ${typingAgentNames[1]} +${typingAgentNames.length - 2} are thinking...`;
   }, [typingAgentNames]);
 
   return (

@@ -23,10 +23,10 @@ class IncognitoRouterPolicy(RoundRobinRouterPolicy):
     def __init__(self, active_agent_id, available_agent_ids, parent_agent_ids, agent_infos, stream_session):
         super().__init__(active_agent_id, available_agent_ids, parent_agent_ids, agent_infos, stream_session)
 
-        orig_ids = self.available_agent_ids + ["USER"]
+        orig_ids = set(self.available_agent_ids + ["USER"] + list(self.parent_agent_ids))
         anon_ids = self._generate_ids(len(orig_ids))
         self.id_map: dict[str, str] = {
-            orig: anon for orig, anon in zip(sample(orig_ids, len(orig_ids)), anon_ids, strict=True)
+            orig: anon for orig, anon in zip(orig_ids, anon_ids, strict=True)
         }
         self.reverse_id_map: dict[str, str] = {
             v: k for k, v in self.id_map.items()

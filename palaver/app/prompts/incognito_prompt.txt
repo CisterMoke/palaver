@@ -12,7 +12,7 @@ Good luck.
 
 # GUIDELINES
 - Chat messages from other members are formatted as [[incognito_message_schema]]
-- Keep in mind that the usernames are anonymized and randomized per user. It therefore makes no sense to mention a username in your message because others won't know who you are talking about.
+- Do not mention users by their usernames. These are anonymized and randomized for each user. Refer to users based on the messages they have sent.
 - The message history might list usernames that are not currently present in the chatroom. This means they have left the room.
 - Answer in plaintext.
 
