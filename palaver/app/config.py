@@ -44,36 +44,10 @@ class AgentConfig(BaseModel):
         return data
 
 
-DEFAULT_PROVIDERS = [
-    ProviderConfig(
-        name="openai",
-        service="openai",
-        api_key_env_var="OPENAI_API_KEY",
-    ),
-    ProviderConfig(
-        name="llamacpp",
-        service="openai",
-        api_base="http://127.0.0.1:8080/v1",
-        api_key_env_var="",  # NOTE: if you wish to use --api-key in llama-server, change this value
-    ),
-]
+DEFAULT_PROVIDERS = []
 
 
-DEFAULT_AGENTS = [
-    AgentConfig(
-        name="Chatty",
-        provider="openai",
-        model="gpt-5-mini",
-        prompt="You are Chatty, a helpful AI assistant.",
-    ),
-    AgentConfig(
-        name="Llama",
-        provider="openai",
-        model="llama",
-        prompt="You are Llama, a helpful AI assistant.",
-        description="AI Agent using a local llama.cpp model."
-    ),
-]
+DEFAULT_AGENTS = []
 
 
 class AgentLoopConfig(BaseModel):

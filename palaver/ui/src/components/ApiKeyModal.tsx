@@ -1,6 +1,7 @@
 import { useState } from "preact/hooks";
 import type { TargetedEvent } from "preact";
 import { updateApiKey } from "../api";
+import icons from './../assets/feathericons.svg?no-inline';
 
 interface ApiKeyModalProps {
   selectedApiKey: string;
@@ -14,6 +15,7 @@ export default function ApiKeyModal({ selectedApiKey, existingApiKeys, onClose, 
   const [keyValue, setKeyValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [actionSuccess, setActionSuccess] = useState<{ success: boolean, message: string } | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const isNameFixed = !!selectedApiKey;
   const isNameTaken = !selectedApiKey && existingApiKeys.includes(keyName.trim());
@@ -40,15 +42,15 @@ export default function ApiKeyModal({ selectedApiKey, existingApiKeys, onClose, 
   };
 
   return (
-    <div className="fixed inset-0 flex items-start justify-center z-60 p-4 overflow-y-auto">
+    <div className="fixed inset-0 flex items-start justify-center z-60 p-4">
       <div className="bg-black/50 h-full rounded-lg w-125 max-w-[90vw] shadow-xl max-h-[calc(100vh-2rem)] overflow-hidden"></div>
-      <div className="bg-white absolute rounded-lg p-6 w-125 max-w-[90vw] shadow-xl max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden">
+      <div className="bg-white absolute rounded-lg p-6 w-125 max-w-[90vw] shadow-xl max-h-[calc(100vh-2rem)] min-h-51 flex flex-col overflow-hidden">
         <div className="shrink-0">
           <h2 className="text-xl font-bold">{selectedApiKey ? 'Edit API Key' : 'Add New API Key'}</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden" autocomplete="off">
-          <div className="flex-1 overflow-y-auto flex flex-col gap-4 pt-4 pr-1">
+          <div className="flex-1 overflow-y-auto flex flex-col gap-4 py-2 px-1">
             {actionSuccess && (
               <div className={`p-3 border rounded text-sm ${
                 actionSuccess.success
@@ -82,20 +84,37 @@ export default function ApiKeyModal({ selectedApiKey, existingApiKeys, onClose, 
             </div>
             <div className="flex-1">
               <label for="api-key-value-input" className="block text-sm font-medium text-gray-700 mb-1">API Key Value</label>
-              <input
-                id="api-key-value-input"
-                type="text"
-                className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                value={keyValue}
-                onChange={(e) => setKeyValue(e.currentTarget.value)}
-                placeholder="e.g. my_secret_token"
-              />
+              <div className="flex items-center border rounded focus-within:ring-2 focus-within:ring-blue-500">
+                <input
+                  id="api-key-value-input"
+                  type={ showPassword ? "text" : "password" }
+                  className="w-full p-2 focus:outline-none"
+                  value={keyValue}
+                  onChange={(e) => setKeyValue(e.currentTarget.value)}
+                  placeholder="e.g. my_secret_token"
+                />
+                <span
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="p-2 text-gray-500 hover:text-blue-500"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <svg className="h-5 w-5">
+                      <use href={`${icons}#eye-off`} />
+                    </svg>
+                  ) : (
+                    <svg className="h-5 w-5">
+                      <use href={`${icons}#eye`} />
+                    </svg>
+                  )}
+                </span>
+              </div>
             </div>
           </div>
 
           </div>
 
-          <div className="shrink-0 flex justify-end gap-3 pt-4 border-t">
+          <div className="shrink-0 flex justify-end gap-3 pt-2 border-t border-gray-200">
             <button
               type="button"
               onClick={onClose}

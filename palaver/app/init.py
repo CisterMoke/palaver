@@ -8,9 +8,8 @@ from palaver.app.database.db import init_db
 
 def init_env():
     default_env = {
-        "OPENAI_API_KEY": "XXXXX"
+        # "OPENAI_API_KEY": "XXXXX"
     }
-
     if not os.path.isfile(ENV_FILE):
         os.makedirs(ENV_FILE.parent, exist_ok=True)
         with open(ENV_FILE, "w") as f:
@@ -26,7 +25,6 @@ def init_config():
     if not CONFIG_FILE.exists():
         os.makedirs(CONFIG_FILE.parent, exist_ok=True)
         LLMConfig.save_updates(default_config.model_dump())
-
 
 
 def init():

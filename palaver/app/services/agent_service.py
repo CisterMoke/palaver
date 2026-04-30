@@ -74,12 +74,16 @@ class AgentManager:
         """Load default agents from config"""
         agents = []
         for agent_config in llm_config.agents:
+            if not llm_config.providers:
+                raise ValueError(
+                    f"'LLMConfig.providers' cannot be empty"
+                )
             for provider_config in llm_config.providers:
                 if provider_config.name == agent_config.provider:
                     break
                 if provider_config == llm_config.providers[-1]:
                     raise ValueError(
-                        f"Provider '{agent_config.provider}' nor found for agent '{agent_config.name}'"
+                        f"Provider '{agent_config.provider}' not found for agent '{agent_config.name}'"
                     )
             agent = self.create_agent(agent_config, provider_config)
             agents.append(agent)
