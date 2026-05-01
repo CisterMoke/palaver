@@ -15,6 +15,9 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
   const [name, setName] = useState(existingAgent?.name || "");
   const [description, setDescription] = useState(existingAgent?.description || "");
   const [systemPrompt, setSystemPrompt] = useState(existingAgent?.prompt || "");
+  const [temperature, setTemperature] = useState(existingAgent?.temperature);
+  const [topP, setTopP] = useState(existingAgent?.top_p);
+  const [thinking, setThinking] = useState(existingAgent?.thinking);
   const [provider, setProvider] = useState(existingAgent?.provider || "");
   const [model, setModel] = useState(existingAgent?.model || "");
   const [loading, setLoading] = useState(false);
@@ -85,6 +88,9 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
         name,
         description,
         prompt: systemPrompt,
+        temperature,
+        top_p: topP,
+        thinking,
         provider,
         model
       });
@@ -113,6 +119,9 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
           name: existingAgent.name, // Keep original name/id
           description,
           prompt: systemPrompt,
+          temperature,
+          top_p: topP,
+          thinking,
           provider,
           model
         });
@@ -121,6 +130,9 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
           name,
           description,
           prompt: systemPrompt,
+          temperature,
+          top_p: topP,
+          thinking,
           provider,
           model
         });
@@ -210,7 +222,64 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
               placeholder="You are a helpful coding assistant..."
             />
           </div>
+          <div className="flex flex-row justify-evenly">
+            <div>
+              <label for="agent-temperature-input" className="block text-sm font-medium text-gray-700 mb-1">Temperature</label>
+              <input
+                id="agent-temperature-input"
+                type="number"
+                step="0.1"
+                min="0.1"
+                max="1.0"
+                className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                value={temperature === null ? undefined : temperature}
+                onChange={(e) => setTemperature(+e.currentTarget.value == 0 ? null : +e.currentTarget.value)}
+              />
+            </div>
 
+            <div>
+              <label for="agent-top_p-input" className="block text-sm font-medium text-gray-700 mb-1">Top P</label>
+              <input
+                id="agent-top_p-input"
+                type="number"
+                step="0.1"
+                min="0.1"
+                max="1.0"
+                className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                value={topP === null ? undefined : topP}
+                onChange={(e) => setTopP(+e.currentTarget.value == 0 ? null : +e.currentTarget.value)}
+              />
+            </div>
+
+            <div>
+              <label for="agent-thinking-input" className="block text-sm font-medium text-gray-700 mb-1">Thinking</label>
+              <select
+                id="agent-thinking-input"
+                className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                value={
+                  thinking === null ? "none"
+                  : thinking === false ? "off"
+                  : thinking === true ? "on"
+                  : thinking
+                }
+                onChange={(e) => setThinking(
+                  e.currentTarget.value === "none" ? null :
+                  e.currentTarget.value === "off" ? false :
+                  e.currentTarget.value === "on" ? true :
+                  e.currentTarget.value
+                )}
+              >
+                <option value={"none"}>--none--</option>
+                <option value={"off"}>off</option>
+                <option value={"on"}>on</option>
+                <option value={"minimal"}>minimal</option>
+                <option value={"low"}>low</option>
+                <option value={"medium"}>medium</option>
+                <option value={"high"}>high</option>
+                <option value={"xhigh"}>xhigh</option>
+              </select>
+            </div>
+          </div>
           <div className="flex gap-4">
             <div className="flex-1">
               <label for="provider-options" className="block relative text-sm font-medium text-gray-700 mb-1">

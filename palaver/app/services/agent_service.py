@@ -324,7 +324,7 @@ class AgentService:
         self.agent_manager.load_default_agents(self.llm_config)
 
     def _save_llm_config(self):
-        LLMConfig.save_updates(self.llm_config.model_dump())
+        LLMConfig.save_updates(self.llm_config.model_dump(exclude_none=True))
 
     def create_agent(self, config: AgentConfig) -> AgentInfo | None:
         """Create a new agent with custom configuration"""

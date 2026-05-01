@@ -4,7 +4,9 @@ export interface AgentConfig {
     model: string;
     description: string;
     prompt: string;
-    temperature?: number;
+    temperature?: number | null;
+    top_p?: number | null;
+    thinking?: boolean | string | null;
 }
 
 export interface AgentInfo extends AgentConfig {
