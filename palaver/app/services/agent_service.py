@@ -372,11 +372,12 @@ class AgentService:
             if hasattr(agent_config, key):
                 setattr(agent_config, key, value)
 
+        provider_config = self.get_provider(agent_config.provider)
+        new_agent = self.agent_manager.create_agent(agent_config, provider_config)
+        if new_agent is None:
+            return False
+        
         self._save_llm_config()
-
-        # Re-initialize the agent
-        self.create_agent(agent_config)
-
         return True
 
     def create_provider(self, config: ProviderConfig) -> ProviderConfig | None:

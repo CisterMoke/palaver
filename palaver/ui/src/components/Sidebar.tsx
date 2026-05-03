@@ -21,6 +21,8 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
   const [chatroomsPaneSize, setChatroomsPaneSize] = useState(50);
   const [isResizing, setIsResizing] = useState(false);
   const splitContainerRef = useRef<HTMLDivElement>(null);
+  const dividerStartYRef = useRef(0);
+  const dividerStartHeightRef = useRef(0);
 
   useEffect(() => {
     loadData();
@@ -69,7 +71,7 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
     }
   };
 
-  const handleAgentCreated = () => {
+  const handleAgentCreated = function() {
     // Refresh the list after an agent is created or updated
     setEditingAgent(null);
     loadData();
@@ -94,11 +96,11 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
       if (!container) return;
 
       const bounds = container.getBoundingClientRect();
-      const relativeY = event.clientY - bounds.top;
-      const nextSize = (relativeY / bounds.height) * 100;
-      const constrainedSize = Math.min(80, Math.max(20, nextSize));
+      const deltaY = event.clientY - dividerStartYRef.current;
+      const deltaPercent = (deltaY / bounds.height) * 100
+      const nextSize = dividerStartHeightRef.current + deltaPercent;
 
-      setChatroomsPaneSize(constrainedSize);
+      setChatroomsPaneSize(nextSize);
     };
 
     const handlePointerUp = () => {
@@ -119,12 +121,12 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
   }, [isResizing]);
 
   return (
-    <div className="max-w-1/4 min-w-fit border-r border-gray-300 p-4 bg-gray-50 flex flex-col h-full text-black">
+    <div className="max-w-1/5 w-fit border-r border-gray-300 p-4 bg-gray-50 flex flex-col h-full text-black">
       <div
         ref={splitContainerRef}
-        className={`flex-1 min-h-0 flex flex-col ${isResizing ? "cursor-row-resize" : ""}`}
+        className={`flex-1 h-full flex flex-col ${isResizing ? "cursor-row-resize" : ""}`}
       >
-        <div style={{ flexBasis: `${chatroomsPaneSize}%` }} className="min-h-0 flex flex-col">
+        <div style={{ height: `${chatroomsPaneSize}%` }} className="min-h-[20%] max-h-[60%] flex flex-col">
           <div className="flex items-center justify-between mb-4 gap-3">
             <h2 className="font-bold text-xl">Chatrooms</h2>
             <button
@@ -132,12 +134,12 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
                 setEditingChatroomId(null);
                 setShowChatroomModal(true);
               }}
-              className="text-xs px-2 py-1 rounded transition-colors"
+              className="text-xs py-1! transition-colors"
             >
               + Add
             </button>
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 no-scrollbar">
             {chatrooms.length === 0 ? (
               <p className="text-gray-500 text-sm mb-4">No chatrooms found</p>
             ) : (
@@ -191,11 +193,13 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
           aria-label="Resize chatrooms and agents sections"
           onPointerDown={(event) => {
             event.preventDefault();
+            dividerStartYRef.current = event.clientY;
+            dividerStartHeightRef.current = chatroomsPaneSize;
             setIsResizing(true);
           }}
-          className="p-1 m-0.75 flex items-center justify-center cursor-row-resize touch-none"
+          className="my-1 p-1! bg-transparent! w-full flex items-center justify-center cursor-row-resize touch-none"
         >
-          <span className="h-px w-12 bg-black rounded" />
+          <span className="h-px w-full bg-black" />
         </button>
 
         <div className="flex-1 min-h-0 flex flex-col">
@@ -203,13 +207,13 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
             <h2 className="font-bold text-xl">Agents</h2>
             <button
               onClick={() => setShowAgentModal(true)}
-              className="text-xs px-2 py-1 rounded transition-colors"
+              className="text-xs py-1! transition-colors"
             >
               + Add
             </button>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 no-scrollbar">
             {agents.length === 0 ? (
               <p className="text-gray-500 text-sm">No agents available.</p>
             ) : (

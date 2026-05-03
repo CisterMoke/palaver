@@ -41,7 +41,6 @@ export default function ChatWindow({ chatroom }: ChatWindowProps) {
   const [agentMap, setAgentMap] = useState<Record<string, AgentInfo>>({});
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("connecting");
   const [reconnectAttemptDisplay, setReconnectAttemptDisplay] = useState(0);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const redactionFramesRef = useRef<Record<string, number>>({});
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
@@ -544,10 +543,11 @@ export default function ChatWindow({ chatroom }: ChatWindowProps) {
 
   // Auto-scroll to bottom
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const lastMsg = document.getElementById("messageList")?.lastElementChild
+    lastMsg?.scrollIntoView({ behavior: "smooth", block: "end"});
   }, [messages]);
 
-  const sendMessage = async () => {
+  const sendMessage = async function (recipient?: string) {
     if (!text.trim()) return;
 
     const content = text.trim();
@@ -578,15 +578,13 @@ export default function ChatWindow({ chatroom }: ChatWindowProps) {
       return;
     }
     
-    const targets = content.match(/@(\w+)/g)?.map((t) => t.slice(1)) || [];
-
     const tempId = `temp-${Date.now()}`;
     const tempMessage: SimpleMessage = {
       id: tempId,
       sender: "USER",
       role: "user",
       content: content,
-      recipients: targets.length > 0 ? targets : undefined,
+      recipients: recipient === undefined ? undefined : [recipient],
       status: "sending"
     };
     setMessages((prev) => [...prev, tempMessage]);
@@ -691,18 +689,22 @@ export default function ChatWindow({ chatroom }: ChatWindowProps) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 overflow-x-hidden">
+      <div
+        className="flex-1 overflow-y-auto p-4 overflow-x-hidden no-scrollbar"
+        id="messageList"
+      >
         <MessageList messages={messages} resolveAgentName={resolveAgentName} />
-        <div ref={bottomRef} />
       </div>
       {typingLabel && (
-        <div className="mx-3 mb-1 flex items-center gap-1.5 text-xs text-gray-500">
+        <div className="mx-3 flex items-center gap-1.5 text-xs text-gray-500">
           <span className="h-2 w-2 rounded-full bg-gray-400 animate-pulse" />
           <span>{typingLabel}</span>
         </div>
       )}
-      <div className="p-1 bg-gray-50 border-t border-gray-200">
-        <MessageInput value={text} onChange={setText} onSend={sendMessage} />
+      <div className="flex justify-center">
+        <div className="relative text-gray-100 bg-current rounded-2xl w-[90%] bottom-2 mt-4 overflow-hidden">
+        <MessageInput value={text} participants={participantIds} onChange={setText} onSend={sendMessage} />
+        </div>
       </div>
 
       {showParticipants && (
