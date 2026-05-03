@@ -28,6 +28,8 @@ def init_config():
 
 
 def init():
+    from tomli_w import _writer
+    _writer.MAX_LINE_LENGTH = 0
     init_env()
     init_config()
     init_db()

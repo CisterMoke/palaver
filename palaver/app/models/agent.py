@@ -18,7 +18,7 @@ class Agent:
     def _provider_factory(cls, provider_config: ProviderConfig):
         def get_provider(*args, **kwargs) -> Provider:
             provider_class = infer_provider_class(provider_config.service)
-            api_base = None if not provider_config.api_base else provider_config.api_base
+            api_base = provider_config.api_base
             if not provider_config.api_key_env_var:
                 return provider_class(base_url=api_base)
             

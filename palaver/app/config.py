@@ -22,8 +22,8 @@ from palaver.app.enums import RoutingType
 class ProviderConfig(BaseModel):
     name: str
     service: Literal["anthropic", "bedrock", "cohere", "google", "groq", "huggingface", "mistral", "openai"]
-    api_base: str = ""
-    api_key_env_var: str = ""
+    api_base: str | None = None
+    api_key_env_var: str | None = None
 
 
 class AgentConfig(BaseModel):

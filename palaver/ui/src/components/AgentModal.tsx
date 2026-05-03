@@ -195,6 +195,7 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
               value={name}
               onChange={(e) => setName(e.currentTarget.value)}
               placeholder="e.g. CodeHelper"
+              autocomplete="off"
               required
               disabled={!!existingAgent}
             />
@@ -209,6 +210,7 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
               value={description}
               onChange={(e) => setDescription(e.currentTarget.value)}
               placeholder="What does this agent do?"
+              autocomplete="off"
             />
           </div>
 
@@ -220,6 +222,7 @@ export default function AgentModal({ onClose, onSuccess, existingAgent }: AgentM
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.currentTarget.value)}
               placeholder="You are a helpful coding assistant..."
+              autocomplete="off"
             />
           </div>
           <div className="flex flex-row justify-evenly">

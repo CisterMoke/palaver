@@ -36,8 +36,8 @@ export interface ChatroomUpsertPayload {
 
 export interface ProviderConfig {
     service: string;
-    api_base: string;
-    api_key_env_var: string;
+    api_base?: string | null;
+    api_key_env_var?: string | null;
     name: string;
 }
 

@@ -75,6 +75,7 @@ export default function ApiKeyModal({ selectedApiKey, existingApiKeys, onClose, 
                 value={keyName}
                 onChange={(e) => setKeyName(e.currentTarget.value.toUpperCase())}
                 required
+                autocomplete="off"
                 placeholder="e.g. OPENAI"
                 disabled={isNameFixed}
               />

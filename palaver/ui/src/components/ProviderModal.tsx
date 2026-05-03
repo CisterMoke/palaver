@@ -14,7 +14,7 @@ interface ProviderModalProps {
 
 export default function ProviderModal({ existingProviders, onClose, onSuccess, existingProvider }: ProviderModalProps) {
   const [service, setService] = useState(existingProvider?.service || "openai");
-  const [apiBase, setApiBase] = useState(existingProvider?.api_base || "");
+  const [apiBase, setApiBase] = useState(existingProvider?.api_base || null);
   const [name, setName] = useState(existingProvider?.name || "");
   const [loading, setLoading] = useState(false);
   const [actionSuccess, setActionSuccess] = useState<{ success: boolean, message: string } | null>(null);
@@ -24,9 +24,9 @@ export default function ProviderModal({ existingProviders, onClose, onSuccess, e
   
   const isNameTaken = !existingProvider && existingProviders.includes(name.trim());
 
-  const keyNameFromEnvVar = (envVar?: string) => {
+  const keyNameFromEnvVar = function (envVar?: string | null) {
     if (!envVar) {
-      return ""
+      return null;
     }
     if (!envVar.endsWith("_API_KEY")) {
       return envVar;
@@ -73,8 +73,8 @@ export default function ProviderModal({ existingProviders, onClose, onSuccess, e
     try {
       const data: ProviderConfig = {
         service: service,
-        api_base: apiBase.trim(),
-        api_key_env_var: apiKeyName.trim() + "_API_KEY",
+        api_base: Boolean(apiBase) ? apiBase!.trim() : null,
+        api_key_env_var: Boolean(apiKeyName) ? (apiKeyName!.trim() + "_API_KEY") : null,
         name: name.trim(),
       };
       
@@ -142,6 +142,7 @@ export default function ProviderModal({ existingProviders, onClose, onSuccess, e
                 value={name}
                 onChange={(e) => setName(e.currentTarget.value)}
                 placeholder="e.g. openai"
+                autocomplete="off"
                 required
                 disabled={!!existingProvider}
               />
@@ -156,7 +157,7 @@ export default function ProviderModal({ existingProviders, onClose, onSuccess, e
                 id="api-base-url-input"
                 type="url"
                 className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                value={apiBase}
+                value={apiBase == null ? "" : apiBase}
                 onChange={(e) => setApiBase(e.currentTarget.value)}
                 placeholder="e.g. https://api.openai.com/v1"
                 />
@@ -202,7 +203,7 @@ export default function ProviderModal({ existingProviders, onClose, onSuccess, e
                 <select
                 id="api-key-name-options"
                 className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                value={apiKeyName}
+                value={apiKeyName == null ? "" : apiKeyName}
                 onChange={(e) => {
                   setActionSuccess(null);
                   if (e.currentTarget.value === "new") {
@@ -216,7 +217,7 @@ export default function ProviderModal({ existingProviders, onClose, onSuccess, e
                   <option value="">Loading API Keys...</option>
                 ) : (
                   <>
-                    {!availableApiKeys.includes(apiKeyName) && <option value={apiKeyName}>{apiKeyName}</option>}
+                    {apiKeyName != null && !availableApiKeys.includes(apiKeyName) && <option value={apiKeyName}>{apiKeyName}</option>}
                     {availableApiKeys.map(k => (
                       <option value={k}>{k}</option>
                     ))}
@@ -248,7 +249,7 @@ export default function ProviderModal({ existingProviders, onClose, onSuccess, e
       </div>
       {apiKeyModalMode && (
         <ApiKeyModal
-          selectedApiKey={apiKeyModalMode === "edit" ? apiKeyName : ""}
+          selectedApiKey={apiKeyModalMode === "edit" ? apiKeyName! : ""}
           existingApiKeys={availableApiKeys}
           onClose={() => setApiKeyModalMode(null)}
           onSuccess={async (newApiKeyName) => {

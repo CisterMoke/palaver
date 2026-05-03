@@ -151,6 +151,7 @@ export default function ChatroomModal({
               value={name}
               onChange={(event) => setName(event.currentTarget.value)}
               placeholder="e.g. Product Team"
+              autocomplete="off"
               required
                disabled={loading || initializing}
             />
