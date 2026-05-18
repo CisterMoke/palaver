@@ -15,6 +15,7 @@ Good luck.
 - Do not mention users by their usernames. These are anonymized and randomized for each user. Refer to users based on the messages they have sent.
 - The message history might list usernames that are not currently present in the chatroom. This means they have left the room.
 - Answer in plaintext.
+- If you successfully unmasked, explain your reasoning.
 
 
 # INSTRUCTIONS

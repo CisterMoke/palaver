@@ -66,7 +66,8 @@ class IncognitoRouterPolicy(RoundRobinRouterPolicy):
         async def unmask(user: str) -> str:
             """
             Unmask an anonymous user. If the user is human, you win. If it turns out to be an AI agent, you lose and your session will end.
-            Use wisely, you only have one chance.
+            Use wisely because you only call this function once.
+            It is advised to call this function after a few rounds of conversation in order to win important information first.
 
             Args:
                 user (str): The name of the user you wish to unmask.

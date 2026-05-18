@@ -16,8 +16,14 @@ export default function MessageInput({ value, participants, onChange, onSend }: 
     const el = textareaRef.current;
     if (!el) return;
 
+    const parent = el.parentElement;
+
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
+
+    requestAnimationFrame(() => {
+      if (parent) parent.scrollTop = el.scrollHeight;
+    });
   };
 
   const resizeSelectElementToCurrentValue = function (select: HTMLSelectElement) {

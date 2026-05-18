@@ -40,11 +40,15 @@ export default function Message({ text, sender, recipient, role, status }: Messa
         </div>
       )}
       <div
-        className={`p-3 rounded-xl wrap-break-word whitespace-normal ${bgClass} ${
-          isUser ? "ml-auto rounded-tr-sm" : "rounded-tl-sm text-left"
+        className={`p-3 rounded-xl wrap-break-word ${bgClass} ${
+          isUser ? "ml-auto rounded-tr-sm whitespace-pre-line" : "rounded-tl-sm text-left whitespace-normal "
         } ${status === "sending" ? "opacity-50" : ""}`}
       >
-        {text === "" ? <div className="animate-pulse h-4 w-12 bg-gray-300 rounded"/> : Markdown(text.trim())}
+        {
+          isUser ? text.trim()
+          : text === "" ? <div className="animate-pulse h-4 w-12 bg-gray-300 rounded"/>
+          : Markdown(text.trim())
+        }
       </div>
     </div>
   );

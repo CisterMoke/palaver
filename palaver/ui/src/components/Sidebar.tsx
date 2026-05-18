@@ -96,9 +96,18 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
       if (!container) return;
 
       const bounds = container.getBoundingClientRect();
+      const childStyle = window.getComputedStyle(container.firstElementChild!);
+
+      const minPercent = parseFloat(childStyle.minHeight);
+      const maxPercent = parseFloat(childStyle.maxHeight);
+
       const deltaY = event.clientY - dividerStartYRef.current;
-      const deltaPercent = (deltaY / bounds.height) * 100
-      const nextSize = dividerStartHeightRef.current + deltaPercent;
+      const deltaPercent = (deltaY / bounds.height) * 100;
+
+      let nextSize = dividerStartHeightRef.current + deltaPercent;
+      
+      if (!isNaN(minPercent)) nextSize = Math.max(nextSize, minPercent);
+      if (!isNaN(maxPercent)) nextSize = Math.min(nextSize, maxPercent);
 
       setChatroomsPaneSize(nextSize);
     };

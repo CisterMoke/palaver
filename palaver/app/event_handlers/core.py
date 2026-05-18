@@ -8,6 +8,7 @@ class AwaitTracker:
     class TrackItem:
         def __init__(self, event: AwaitAgentEvent):
             self.event = event
+            self.parent_run_id = event.parent_run_id
             self.subagent_run_ids: set[str] = set()
             self.results: list[str] = []
 
@@ -15,8 +16,8 @@ class AwaitTracker:
         self.track_record: dict[str, AwaitTracker.TrackItem] = dict()
 
     def track_new(self, event: AwaitAgentEvent):
-        logger.debug(f"Tracking new AwaitAgentEvent '{event.run_id}'")
-        self.track_record[event.run_id] = self.TrackItem(event)
+        logger.debug(f"Tracking new AwaitAgentEvent '{event.await_id}'")
+        self.track_record[event.await_id] = self.TrackItem(event)
 
     def register_send_event(self, event: SendAgentEvent):
         if event.awaited_by is None:

@@ -64,8 +64,10 @@ You are only allowed to message the following agents:
                 if consume_reply:
                     await_event = AwaitAgentEvent(run_deps.run_id)
                     await stream.send(await_event)
-
-                awaited_by = run_deps.run_id if consume_reply else run_deps.awaited_by
+                    awaited_by = await_event.await_id
+                else:
+                    awaited_by = run_deps.awaited_by
+                    
                 send_event = SendAgentEvent(
                     recipient=recipient,
                     message=message,

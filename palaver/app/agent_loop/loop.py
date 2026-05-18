@@ -144,7 +144,7 @@ class AgentLoop:
             chat_history=chat_history,
             run_id=str(uuid.uuid4()),
             agent_chain=None,
-            awaited_by="root",
+            awaited_by=await_event.await_id,
         )
 
         task_status.started(await_event)

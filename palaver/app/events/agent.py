@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 
 
 from palaver.app.dataclasses.message import ChatMessage, Message
@@ -25,7 +26,8 @@ class SendAgentEvent(Event):
 
 class AwaitAgentEvent(Event):
     def __init__(self, run_id: str):
-        self.run_id = run_id
+        self.parent_run_id = run_id
+        self.await_id = str(uuid.uuid4())
         self._done = asyncio.Event()
         self._result = None
 
