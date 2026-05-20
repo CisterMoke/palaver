@@ -1,6 +1,14 @@
 
 <img src="./docs/assets/palaver_full.svg" alt="Palaver" width="500" style="display:block; margin:1em auto"/>
 
+<p style="text-align:center">
+  <a href="https://pypi.org/project/palaver/" alt="v0.0.3">
+    <img src="https://img.shields.io/badge/version-0.0.3-blue" />
+  </a>
+  <a href="https://pypi.org/project/palaver/" alt="Python 3.12+">
+    <img src="https://img.shields.io/badge/Python-3.12+-blue" />
+  </a>
+</p>
 
 A true Multi-Agent AI chatroom application.
 
