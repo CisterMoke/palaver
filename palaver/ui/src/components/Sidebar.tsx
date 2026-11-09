@@ -165,7 +165,7 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
                     >
                       <div className="flex items-center justify-between gap-2 group">
                         <span className="truncate">{room.name}</span>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex gap-1 can-hover:opacity-0 can-hover:group-hover:opacity-100 transition-opacity">
                           <span
                             className="hover:text-blue-500"
                             onClick={(event) => {
@@ -242,7 +242,7 @@ export default function Sidebar({ activeChatroom, onSelectChatroom }: SidebarPro
                         />
                         <div className="font-medium text-gray-800 truncate">{agent.name}</div>
                       </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1 can-hover:opacity-0 can-hover:group-hover:opacity-100 transition-opacity">
                         <span
                           onClick={() => setEditingAgent(agent)}
                           className="text-gray-500 hover:text-blue-500"

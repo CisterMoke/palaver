@@ -114,6 +114,9 @@ class ProviderModels:
             if provider.name == "mistral":
                 response = await client.models.list_async()
                 return [model_data.id for model_data in response.data]
+            elif provider.name.startswith("google"):
+                response = client.models.list()
+                return [model_data.name.split("/")[-1] for model_data in response]
             else:
                 response = await client.models.list()
                 return [model_data.id for model_data in response.data]

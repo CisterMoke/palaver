@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant can-hover (@media (hover: hover));
+
 @utility no-scrollbar {
   @apply [scrollbar-width:none] [&::-webkit-scrollbar]:hidden;
 }
